@@ -1,0 +1,22 @@
+[project]
+name = "safishacon-api"
+version = "1.0.0"
+description = "Cleaning-services marketplace API"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["B008", "S101", "S105", "S106", "S311", "B904"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "E402"]
