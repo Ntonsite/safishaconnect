@@ -4,6 +4,8 @@
 
 SafishaCon is a managed cleaning-services marketplace for Dar es Salaam, Tanzania. Customers choose a service, describe the property, pick a time and pay a fixed price. The platform assigns a verified cleaner or cleaning company, and that provider brings their own equipment and materials. Customers never browse or haggle with cleaners.
 
+> **Want to log in straight away?** See [Demo credentials](#demo-credentials). Every demo account uses the password `Safisha@2026`.
+
 > "SafishaCon" is a working name. The brand is configured in one place (`APP_NAME` and related settings), so the product can be renamed without code changes. See [Brand configuration](#brand-configuration).
 
 ---
@@ -55,17 +57,31 @@ Stop with `docker compose down`. Add `-v` to also delete the database volume.
 
 ## Demo credentials
 
-All demo accounts share the password **`Safisha@2026`** (set by `SEED_DEMO_PASSWORD`). In demo mode the login page also offers one-tap demo logins.
+The seed creates these accounts automatically (by Docker on startup, or by `python -m app.seed`). Sign in at **http://localhost:8080/login** (Docker) or **http://localhost:5173/login** (dev server) using either the email or the phone number. In demo mode the login page also offers one-tap demo logins.
 
-| Role | Email | Notes |
-|---|---|---|
-| Platform admin | `admin@safishacon.local` | "Safisha Admin" |
-| Customer | `customer@safishacon.local` | Neema Mwakyusa, default area Mikocheni |
-| Individual cleaner (verified) | `cleaner@safishacon.local` | Rehema Juma, Mon–Sat 08:00–18:00, prefers Kiswahili |
-| Cleaning company (verified) | `provider@safishacon.local` | Usafi Bora Cleaning Services Ltd, 3 parallel teams, all areas |
-| Pending provider | `pending@safishacon.local` | Waiting for admin verification |
+| Role | Email | Phone | Password | Lands on | Notes |
+|---|---|---|---|---|---|
+| Platform admin | `admin@safishacon.local` | `0700 000 001` | `Safisha@2026` | `/admin` | "Safisha Admin" |
+| Customer | `customer@safishacon.local` | `0712 000 001` | `Safisha@2026` | `/app` | Neema Mwakyusa, default area Mikocheni. Also works in the Flutter app |
+| Individual cleaner (verified) | `cleaner@safishacon.local` | `0713 000 002` | `Safisha@2026` | `/provider` | Rehema Juma, Mon–Sat 08:00–18:00. Portal opens in Kiswahili |
+| Cleaning company (verified) | `provider@safishacon.local` | `0714 000 003` | `Safisha@2026` | `/provider` | Usafi Bora Cleaning Services Ltd (contact Joseph Kimaro), 3 parallel teams, all areas |
+| Provider awaiting verification | `pending@safishacon.local` | `0715 000 004` | `Safisha@2026` | `/provider` | Baraka Said. Use it to try approval as admin |
 
-Demo accounts are for development and review only. Production must run with `DEMO_MODE=false` (the API refuses to start otherwise), a real `JWT_SECRET`, and `python -m app.seed --reference-only`.
+The shared password comes from `SEED_DEMO_PASSWORD` in `.env`. Change it there before seeding a fresh database to use a different one.
+
+### Local infrastructure credentials
+
+| Service | Value |
+|---|---|
+| PostgreSQL host / port | `localhost` / `5432` |
+| Database (app) | `safishacon` |
+| Database (tests) | `safishacon_test` |
+| User / password | `safisha` / `safisha` |
+| Connection URL | `postgresql+psycopg://safisha:safisha@localhost:5432/safishacon` |
+
+These defaults come from `.env.example` and `docker-compose.yml` (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`).
+
+> ⚠️ All of the above are development/demo credentials only. Production must run with `DEMO_MODE=false` (the API refuses to start otherwise), a real `JWT_SECRET`, and `python -m app.seed --reference-only`.
 
 ### Try the full journey
 
