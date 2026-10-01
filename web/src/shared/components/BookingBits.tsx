@@ -123,6 +123,10 @@ export function PriceBreakdown({ lines, total, currency }: { lines: QuoteLine[];
           <span>{fmt.money(line.amount, currency)}</span>
         </div>
       ))}
+      <div className="price-line">
+        <span>{t("booking.materialsLine")}</span>
+        <span className="included-tag">{t("common.included")}</span>
+      </div>
       <div className="price-total">
         <span>{t("common.total")}</span>
         <span className="num">{fmt.money(total, currency)}</span>

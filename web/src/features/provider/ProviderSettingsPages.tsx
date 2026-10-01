@@ -187,7 +187,7 @@ export function EarningsPage() {
                       </div>
                     </td>
                     <td>
-                      <BookingStatusBadge status={r.status} />
+                      <BookingStatusBadge status={r.status} provider />
                     </td>
                     <td className="right num">{fmt.money(r.total_amount, e.currency)}</td>
                     <td className="right num muted">−{fmt.money(r.commission_amount, e.currency)}</td>

@@ -488,6 +488,18 @@ abstract class AppLocalizations {
   /// **'Booking confirmed — we\'re finding you a verified cleaner.'**
   String get bookingConfirmed;
 
+  /// No description provided for @bookingReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Booking reference'**
+  String get bookingReference;
+
+  /// No description provided for @findingProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'re finding a verified cleaner for you. Follow the progress below.'**
+  String get findingProvider;
+
   /// No description provided for @progress.
   ///
   /// In en, this message translates to:
@@ -553,6 +565,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Happy with the cleaning? Confirm so we can close the booking.'**
   String get confirmCompletionBody;
+
+  /// No description provided for @reportIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'Report an issue'**
+  String get reportIssue;
+
+  /// No description provided for @issueCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'What went wrong?'**
+  String get issueCategory;
+
+  /// No description provided for @issueDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us what happened'**
+  String get issueDescription;
+
+  /// No description provided for @issueDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter at least 10 characters.'**
+  String get issueDescriptionHint;
+
+  /// No description provided for @issueSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Your issue has been sent to Safisha support.'**
+  String get issueSent;
+
+  /// No description provided for @issueQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleaning quality'**
+  String get issueQuality;
+
+  /// No description provided for @issueLate.
+  ///
+  /// In en, this message translates to:
+  /// **'Late or no show'**
+  String get issueLate;
+
+  /// No description provided for @issueDamage.
+  ///
+  /// In en, this message translates to:
+  /// **'Damage'**
+  String get issueDamage;
+
+  /// No description provided for @issueConduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider conduct'**
+  String get issueConduct;
+
+  /// No description provided for @issuePayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment'**
+  String get issuePayment;
+
+  /// No description provided for @issueOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get issueOther;
+
+  /// No description provided for @sendIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'Send issue'**
+  String get sendIssue;
 
   /// No description provided for @cancelBooking.
   ///
@@ -635,7 +719,7 @@ abstract class AppLocalizations {
   /// No description provided for @rooms.
   ///
   /// In en, this message translates to:
-  /// **'{bedrooms} bedrooms · {bathrooms} bathrooms'**
+  /// **'{bedrooms, plural, =1{1 bedroom} other{{bedrooms} bedrooms}} · {bathrooms, plural, =1{1 bathroom} other{{bathrooms} bathrooms}}'**
   String rooms(int bedrooms, int bathrooms);
 
   /// No description provided for @verified.
@@ -763,6 +847,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Demo data'**
   String get demoData;
+
+  /// No description provided for @materialsLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Equipment & materials'**
+  String get materialsLine;
+
+  /// No description provided for @included.
+  ///
+  /// In en, this message translates to:
+  /// **'Included'**
+  String get included;
 }
 
 class _AppLocalizationsDelegate

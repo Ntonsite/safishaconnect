@@ -58,10 +58,13 @@ export function Badge({ tone = "slate", children, dot }: { tone?: Tone; children
   return <span className={clsx("badge", `tone-${tone}`, dot && "badge-dot")}>{children}</span>;
 }
 
-export function BookingStatusBadge({ status, admin }: { status: BookingStatus; admin?: boolean }) {
+export function BookingStatusBadge({ status, admin, provider }: { status: BookingStatus; admin?: boolean; provider?: boolean }) {
   const { t, i18n } = useTranslation();
   const adminKey = `status.adminBooking.${status}`;
-  const label = admin && i18n.exists(adminKey) ? t(adminKey) : t(`status.booking.${status}`);
+  const providerKey = `status.providerBooking.${status}`;
+  const label = provider && i18n.exists(providerKey)
+    ? t(providerKey)
+    : admin && i18n.exists(adminKey) ? t(adminKey) : t(`status.booking.${status}`);
   return (
     <Badge tone={BOOKING_TONES[status]} dot>
       {label}

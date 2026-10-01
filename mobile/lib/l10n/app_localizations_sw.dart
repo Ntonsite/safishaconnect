@@ -214,6 +214,13 @@ class AppLocalizationsSw extends AppLocalizations {
       'Oda imethibitishwa — tunakutafutia msafishaji aliyethibitishwa.';
 
   @override
+  String get bookingReference => 'Namba ya oda';
+
+  @override
+  String get findingProvider =>
+      'Tunakutafutia msafishaji aliyethibitishwa. Fuatilia maendeleo hapa chini.';
+
+  @override
   String get progress => 'Maendeleo';
 
   @override
@@ -247,6 +254,43 @@ class AppLocalizationsSw extends AppLocalizations {
   @override
   String get confirmCompletionBody =>
       'Umeridhika na usafi? Thibitisha ili tufunge oda.';
+
+  @override
+  String get reportIssue => 'Ripoti tatizo';
+
+  @override
+  String get issueCategory => 'Nini kilienda vibaya?';
+
+  @override
+  String get issueDescription => 'Eleza kilichotokea';
+
+  @override
+  String get issueDescriptionHint => 'Andika angalau herufi 10.';
+
+  @override
+  String get issueSent =>
+      'Tatizo lako limetumwa kwa timu ya msaada ya Safisha.';
+
+  @override
+  String get issueQuality => 'Ubora wa usafi';
+
+  @override
+  String get issueLate => 'Kuchelewa au kutofika';
+
+  @override
+  String get issueDamage => 'Uharibifu';
+
+  @override
+  String get issueConduct => 'Tabia ya mtoa huduma';
+
+  @override
+  String get issuePayment => 'Malipo';
+
+  @override
+  String get issueOther => 'Nyingine';
+
+  @override
+  String get sendIssue => 'Tuma tatizo';
 
   @override
   String get cancelBooking => 'Ghairi oda';
@@ -293,7 +337,19 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String rooms(int bedrooms, int bathrooms) {
-    return 'Vyumba vya kulala $bedrooms · Mabafu $bathrooms';
+    String _temp0 = intl.Intl.pluralLogic(
+      bedrooms,
+      locale: localeName,
+      other: 'Vyumba $bedrooms vya kulala',
+      one: 'Chumba 1 cha kulala',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      bathrooms,
+      locale: localeName,
+      other: 'Mabafu $bathrooms',
+      one: 'Bafu 1',
+    );
+    return '$_temp0 · $_temp1';
   }
 
   @override
@@ -359,4 +415,10 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get demoData => 'Data ya majaribio';
+
+  @override
+  String get materialsLine => 'Vifaa na dawa za usafi';
+
+  @override
+  String get included => 'Vimejumuishwa';
 }

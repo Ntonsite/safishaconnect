@@ -33,7 +33,7 @@ const ALL_STATUSES: BookingStatus[] = [
 ];
 
 export function AdminBookingsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const fmt = useFormat();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -84,7 +84,7 @@ export function AdminBookingsPage() {
             <option value="">{t("admin.allStatuses")}</option>
             {ALL_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {t(`status.booking.${s}`)}
+                {i18n.exists(`status.adminBooking.${s}`) ? t(`status.adminBooking.${s}`) : t(`status.booking.${s}`)}
               </option>
             ))}
           </Select>
@@ -121,7 +121,16 @@ export function AdminBookingsPage() {
       {query.data && (
         <div className="card card-flush">
           {query.data.items.length === 0 ? (
-            <EmptyState icon={ClipboardList} title={t("common.results", { count: 0 })} />
+            <EmptyState
+              icon={ClipboardList}
+              title={t("admin.noMatchingBookings")}
+              body={t("admin.noMatchingBookingsBody")}
+              action={(status || serviceId || areaId || dateFrom || dateTo || q) && (
+                <Button variant="secondary" onClick={() => { setParams(new URLSearchParams(), { replace: true }); setQ(""); }}>
+                  {t("admin.clearFilters")}
+                </Button>
+              )}
+            />
           ) : (
             <div className="table-wrap">
               <table className="table">
@@ -320,7 +329,7 @@ export function AdminBookingDetailPage() {
               <dt>{t("customer.property")}</dt>
               <dd>
                 {[b.property_type && fmt.pick(b.property_type, "name"), b.size && fmt.pick(b.size, "name")].filter(Boolean).join(" · ") || "—"}
-                {b.bathrooms > 0 && <div className="small muted">{t("customer.rooms", { bedrooms: b.bedrooms, bathrooms: b.bathrooms })}</div>}
+                {b.bathrooms > 0 && <div className="small muted">{fmt.rooms(b.bedrooms, b.bathrooms)}</div>}
               </dd>
               {b.special_instructions && (
                 <>

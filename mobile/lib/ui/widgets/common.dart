@@ -255,6 +255,15 @@ class PriceLines extends StatelessWidget {
               ],
             ),
           ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Expanded(child: Text(l.materialsLine)),
+              Text(l.included, style: const TextStyle(color: Brand.green700, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
         const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider()),
         Row(
           children: [

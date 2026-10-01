@@ -3,11 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
-  BadgeCheck,
   Banknote,
   Building2,
   CheckCircle2,
-  Droplets,
   Headset,
   MapPin,
   Plus,
@@ -15,8 +13,6 @@ import {
   SprayCan,
   Tag,
   User,
-  Wind,
-  Wrench,
 } from "lucide-react";
 import { publicApi } from "../../api/endpoints";
 import { useBrand, useConfig } from "../../config/brand";
@@ -45,11 +41,6 @@ export function LandingPage() {
       </section>
       <TrustSection />
       <ProvidersSection />
-      <section className="section-tight">
-        <div className="container">
-          <EquipmentBand />
-        </div>
-      </section>
       <AreasSection />
       <Testimonials />
       <section className="section-tight">
@@ -73,7 +64,6 @@ export function LandingPage() {
 function Hero() {
   const { t } = useTranslation();
   const brand = useBrand();
-  const fmt = useFormat();
   return (
     <section className="hero">
       <div className="container hero-grid">
@@ -91,68 +81,44 @@ function Hero() {
               {t("landing.ctaProvider")}
             </ButtonLink>
           </div>
-          <ul className="hero-points">
-            <li>
-              <BadgeCheck aria-hidden /> {t("landing.heroPoints.verified")}
-            </li>
-            <li>
-              <Tag aria-hidden /> {t("landing.heroPoints.fixedPrice")}
-            </li>
-            <li>
-              <Banknote aria-hidden /> {t("landing.heroPoints.cash")}
-            </li>
-          </ul>
         </div>
-
-        <div className="hero-visual" aria-hidden>
-          <div className="hero-blob" />
-          <div className="hero-card">
-            <div className="hero-card-top">
-              <ServiceIcon name="sparkles" />
-              <div className="grow">
-                <div className="strong">{t("landing.heroCard.title")}</div>
-                <div className="small muted">{t("landing.heroCard.meta")}</div>
-              </div>
-              <span className="badge tone-green badge-dot">{t("landing.heroCard.inProgress")}</span>
-            </div>
-            <ol className="timeline">
-              <li>
-                <span className="timeline-dot">
-                  <CheckCircle2 />
-                </span>
-                <div>
-                  <div className="timeline-title">{t("landing.heroCard.assigned")}</div>
-                  <div className="timeline-meta">{t("landing.heroCard.when")}</div>
-                </div>
-              </li>
-              <li>
-                <span className="timeline-dot">
-                  <CheckCircle2 />
-                </span>
-                <div className="timeline-title">{t("landing.heroCard.enRoute")}</div>
-              </li>
-              <li className="is-current">
-                <span className="timeline-dot" />
-                <div className="timeline-title">{t("landing.heroCard.inProgress")}</div>
-              </li>
-            </ol>
-            <div className="hero-card-price">
-              <span className="muted small">{t("landing.heroCard.price")}</span>
-              <strong>{fmt.money(110000)}</strong>
-            </div>
-          </div>
-          <div className="hero-float">
-            <span className="feature-icon" style={{ width: 40, height: 40 }}>
-              <ShieldCheck />
-            </span>
-            <div>
-              <div className="strong small">{t("landing.heroPoints.verified")}</div>
-              <Stars value={5} size={13} />
-            </div>
-          </div>
-        </div>
+        <HeroPanel />
       </div>
     </section>
+  );
+}
+
+/** What every booking includes, with the real lowest starting price from the catalogue. */
+function HeroPanel() {
+  const { t } = useTranslation();
+  const fmt = useFormat();
+  const { data } = useQuery({ queryKey: ["services"], queryFn: publicApi.services });
+  const items = t("landing.heroPanel.items", { returnObjects: true }) as string[];
+  const icons = [ShieldCheck, SprayCan, Tag, Banknote];
+  const lowest = data?.length ? Math.min(...data.map((s) => Number(s.base_price))) : null;
+  return (
+    <aside className="hero-panel" aria-labelledby="hero-panel-title">
+      <h2 id="hero-panel-title">{t("landing.heroPanel.title")}</h2>
+      <ul>
+        {items.map((item, i) => {
+          const Icon = icons[i] ?? CheckCircle2;
+          return (
+            <li key={item}>
+              <span className="feature-icon" aria-hidden>
+                <Icon />
+              </span>
+              {item}
+            </li>
+          );
+        })}
+      </ul>
+      <div className="hero-panel-foot">
+        {lowest !== null ? <strong>{t("landing.heroPanel.from", { price: fmt.money(lowest) })}</strong> : <Skeleton width={140} />}
+        <Link to="/services" className="row strong" style={{ gap: 6 }}>
+          {t("landing.heroPanel.seeServices")} <ArrowRight size={16} aria-hidden />
+        </Link>
+      </div>
+    </aside>
   );
 }
 
@@ -296,27 +262,6 @@ function ProvidersSection() {
   );
 }
 
-function EquipmentBand() {
-  const { t } = useTranslation();
-  const labels = t("landing.equipmentItems", { returnObjects: true }) as string[];
-  const items = [SprayCan, Wind, Droplets, Wrench].map((icon, i) => ({ icon, label: labels[i] }));
-  return (
-    <div className="equipment-band">
-      <div>
-        <h2 className="display">{t("landing.trust.equipment.title")}</h2>
-        <p>{t("landing.trust.equipment.body")}</p>
-      </div>
-      <div className="equipment-items" aria-hidden>
-        {items.map(({ icon: Icon, label }) => (
-          <div key={label}>
-            <Icon /> <span>{label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function AreasSection() {
   const { t } = useTranslation();
   const { data } = useQuery({ queryKey: ["areas"], queryFn: publicApi.areas });
@@ -347,6 +292,13 @@ function Testimonials() {
   const { demo_mode } = useConfig();
   const { data } = useQuery({ queryKey: ["public-reviews"], queryFn: publicApi.reviews });
   if (!data?.length) return null;
+  const uniqueReviews = data.filter((review, index, all) =>
+    all.findIndex((candidate) =>
+      candidate.customer_first_name === review.customer_first_name &&
+      candidate.service_name === review.service_name &&
+      candidate.comment === review.comment
+    ) === index
+  );
   return (
     <section className="section section-alt" aria-labelledby="reviews-title">
       <div className="container">
@@ -357,7 +309,7 @@ function Testimonials() {
           {demo_mode && <span className="demo-flag">{t("common.demoData")}</span>}
         </div>
         <div className="grid-3">
-          {data.slice(0, 3).map((r, i) => (
+          {uniqueReviews.slice(0, 3).map((r, i) => (
             <figure className="card quote-card" key={i} style={{ margin: 0 }}>
               <Stars value={r.rating} />
               <blockquote>“{r.comment}”</blockquote>

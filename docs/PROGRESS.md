@@ -62,3 +62,36 @@ It was run both on the Vite dev server and on the Dockerized stack, with zero br
 3. Move rate limiting and offer expiry out of process (Redis and a worker) before scaling horizontally.
 4. Store web refresh tokens in httpOnly cookies, and add rescheduling and auto-confirm after N hours.
 5. Have the Flutter app read payment availability from `/config`, and add push notifications.
+
+---
+
+## UI/UX audit and polish (2026-10-01)
+
+Each journey was run in a real browser (Playwright) as customer, cleaner, cleaning company, pending provider and admin, at 1440, 390 and 320 px and in both languages.
+
+**Problems found and fixed**
+
+| Area | Problem | Fix |
+|---|---|---|
+| Booking wizard (mobile) | The date strip on the schedule step pushed the page 788 px wider than the screen | Grid children can now shrink (`.detail-grid > * { min-width: 0 }`); overflow re-checked at 320 and 390 px |
+| Booking wizard (mobile) | The price was only visible at the very bottom, below the actions | Sticky action bar shows the live total on every step; the review step leads with the full summary |
+| Price presentation | Equipment being included wasn't visible in the price | Every price breakdown (web and Flutter) shows "Equipment & materials: Included" |
+| Copy | "1 bedrooms · 1 bathrooms" | Proper singular/plural forms in English and Kiswahili (web i18next plurals, Flutter ICU plurals) |
+| Booking confirmation | A one-line alert | A confirmation panel with reference, service, date and time, total, plus *Track booking* and *My bookings* |
+| Landing hero | A decorative mock card, later an empty right half | A restrained "Every booking includes" panel using the real lowest catalogue price |
+| Provider dashboard | Company greeted as "Hello, Usafi"; analytics above the actual work; two large money cards | Companies greeted by business name; job requests and active jobs come first; one compact earnings summary |
+| Provider wording | Customer-facing labels on provider screens | Provider-specific status labels ("Job assigned", "On the way"); "provider" instead of "cleaner" where companies are included |
+| Review step | Doubled icon in the materials notice | Single icon |
+| Admin | Blank tables when filters matched nothing; reassignment folded into "needs a provider" | Helpful empty states with *Clear filters*; reassignments listed separately under "Needs attention" |
+| Flutter | No way to report a problem; plain confirmation | *Report an issue* dialog (categories, validation); detailed confirmation card |
+| Performance | One 588 KB bundle for every visitor | Customer, provider and admin areas are lazy-loaded; the public entry bundle is now 478 KB |
+
+**Verification after the polish**
+
+Backend 53 ✓ · Web lint, type-check, 18 tests and build ✓ · Flutter analyze and 7 tests ✓ · full UI journey (book → assign → accept → progress → confirm → cash → close → review → admin) ✓ with no browser errors · no horizontal overflow at 320 or 390 px · Docker web image rebuilt.
+
+**Remaining limitations**
+
+- The public entry bundle (478 KB, 145 KB gzipped) is mostly framework and library code. Splitting it further would need vendor chunking.
+- There's no photography yet. The brand relies on typography, icons and real data until a professional shoot is available; stock imagery was deliberately avoided.
+- Flutter web needs internet access for the CanvasKit renderer (or a build with `--no-web-resources-cdn`). Android and iOS builds are unaffected.

@@ -25,6 +25,7 @@ export function ProviderDashboard() {
   const dashboard = useQuery({ queryKey: ["provider", "dashboard"], queryFn: providerApi.dashboard, refetchInterval: 30_000 });
   const profile = useQuery({ queryKey: ["provider", "profile"], queryFn: providerApi.profile });
   const offers = useQuery({ queryKey: ["provider", "jobs", "offers"], queryFn: () => providerApi.jobs("offers"), refetchInterval: 20_000 });
+  const active = useQuery({ queryKey: ["provider", "jobs", "active"], queryFn: () => providerApi.jobs("active"), refetchInterval: 20_000 });
   const toggle = useMutation({
     mutationFn: (value: boolean) => providerApi.updateProfile({ is_accepting_jobs: value }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["provider"] }),
@@ -51,7 +52,13 @@ export function ProviderDashboard() {
   return (
     <div className="stack-lg">
       <PageHeader
-        title={t("provider.welcome", { name: profile.data?.display_name.split(" ")[0] ?? "" })}
+        title={t("provider.welcome", {
+          // Companies are greeted by their business name; individuals by first name.
+          name:
+            profile.data?.provider_type === "COMPANY"
+              ? profile.data.display_name
+              : (profile.data?.display_name.split(" ")[0] ?? ""),
+        })}
         subtitle={<VerificationBadge status={d.verification_status} />}
       />
 
@@ -77,6 +84,30 @@ export function ProviderDashboard() {
         </div>
       )}
 
+      <section className="stack-sm" aria-labelledby="provider-new-requests">
+        <div className="row-between">
+          <h2 id="provider-new-requests" className="section-label">{t("provider.newRequests")}</h2>
+          {!!offers.data?.length && (
+            <ButtonLink to="/provider/offers" variant="ghost" size="sm">{t("common.viewAll")}</ButtonLink>
+          )}
+        </div>
+        {offers.isLoading ? <SkeletonCard /> : offers.data?.length ? (
+          <OfferList jobs={offers.data.slice(0, 2)} />
+        ) : (
+          <div className="card"><EmptyState icon={Inbox} title={t("provider.noOffers")} body={t("provider.noOffersBody")} /></div>
+        )}
+      </section>
+
+      {!!active.data?.length && (
+        <section className="stack-sm" aria-labelledby="provider-active-jobs">
+          <div className="row-between">
+            <h2 id="provider-active-jobs" className="section-label">{t("nav.provider.active")}</h2>
+            <ButtonLink to="/provider/jobs" variant="ghost" size="sm">{t("common.viewAll")}</ButtonLink>
+          </div>
+          {active.data.slice(0, 2).map((job) => <JobCard key={job.assignment_id} job={job} />)}
+        </section>
+      )}
+
       <div className="grid-4">
         {stats.map((s) => (
           <Link key={s.label} to={s.to} className="card card-tight link-card stat">
@@ -88,36 +119,22 @@ export function ProviderDashboard() {
         ))}
       </div>
 
-      <div className="grid-2">
-        <Link to="/provider/earnings" className="card link-card stat">
-          <span className="stat-label row" style={{ gap: 6 }}>
-            <Wallet size={16} aria-hidden /> {t("provider.stats.earned")}
-          </span>
-          <span className="stat-value">{fmt.money(d.earnings_total, d.currency)}</span>
-        </Link>
-        <Link to="/provider/earnings" className="card link-card stat">
-          <span className="stat-label">{t("provider.stats.pending")}</span>
-          <span className="stat-value">{fmt.money(d.earnings_pending, d.currency)}</span>
-        </Link>
-      </div>
-
-      <section className="stack-sm">
-        <div className="row-between">
-          <h2 className="section-label">{t("provider.newRequests")}</h2>
-          {!!offers.data?.length && (
-            <ButtonLink to="/provider/offers" variant="ghost" size="sm">
-              {t("common.viewAll")}
-            </ButtonLink>
-          )}
-        </div>
-        {offers.data?.length ? (
-          <OfferList jobs={offers.data.slice(0, 2)} />
-        ) : (
-          <div className="card">
-            <EmptyState icon={Inbox} title={t("provider.noOffers")} body={t("provider.noOffersBody")} />
+      <Link to="/provider/earnings" className="card card-tight link-card earnings-summary">
+        <span className="stat-label row" style={{ gap: 6 }}>
+          <Wallet size={16} aria-hidden /> {t("provider.earningsCard")}
+        </span>
+        <div className="earnings-summary-values">
+          <div className="stat">
+            <span className="small muted">{t("provider.stats.earned")}</span>
+            <span className="stat-value stat-value-sm">{fmt.money(d.earnings_total, d.currency)}</span>
           </div>
-        )}
-      </section>
+          <div className="stat">
+            <span className="small muted">{t("provider.stats.pending")}</span>
+            <span className="stat-value stat-value-sm">{fmt.money(d.earnings_pending, d.currency)}</span>
+          </div>
+        </div>
+      </Link>
+
     </div>
   );
 }
@@ -227,7 +244,7 @@ export function JobDetailPage() {
         back={{ to: job.assignment_status === "OFFERED" ? "/provider/offers" : "/provider/jobs", label: t("common.back") }}
         title={fmt.pick(b.service, "name")}
         subtitle={b.reference}
-        actions={<BookingStatusBadge status={b.status} />}
+        actions={<BookingStatusBadge status={b.status} provider />}
       />
 
       <div className="detail-grid">
@@ -300,7 +317,7 @@ export function JobDetailPage() {
               <dd>
                 {[b.property_type && fmt.pick(b.property_type, "name"), b.size && fmt.pick(b.size, "name")].filter(Boolean).join(" · ") ||
                   fmt.pick(b.service, "name")}
-                {b.bathrooms > 0 && <div className="small muted">{t("customer.rooms", { bedrooms: b.bedrooms, bathrooms: b.bathrooms })}</div>}
+                {b.bathrooms > 0 && <div className="small muted">{fmt.rooms(b.bedrooms, b.bathrooms)}</div>}
               </dd>
               {b.price_items.some((i) => i.kind === "ADDON") && (
                 <>

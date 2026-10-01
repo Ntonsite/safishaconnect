@@ -1,33 +1,54 @@
+import { lazy, Suspense, type ComponentType } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { PageLoader } from "./shared/components/Feedback";
 import { RequireRole } from "./auth/RequireRole";
 import { AdminLayout, CustomerLayout, ProviderLayout } from "./layouts/RoleLayouts";
 import { PublicLayout } from "./layouts/PublicLayout";
-import { AdminBookingDetailPage, AdminBookingsPage } from "./features/admin/AdminBookings";
-import { AdminAreasPage, AdminServicesPage } from "./features/admin/AdminCatalog";
-import {
-  AdminAuditPage,
-  AdminComplaintsPage,
-  AdminPaymentsPage,
-  AdminReviewsPage,
-  AdminSettingsPage,
-  AdminSettlementsPage,
-} from "./features/admin/AdminOperations";
-import { AdminOverview } from "./features/admin/AdminOverview";
-import { AdminCustomersPage, AdminProviderDetailPage, AdminProvidersPage } from "./features/admin/AdminPeople";
-import { BookingDetailPage } from "./features/customer/BookingDetailPage";
-import { BookingsPage, CustomerDashboard, MyReviewsPage } from "./features/customer/CustomerPages";
-import { NewBookingPage } from "./features/customer/NewBookingPage";
-import { ProfilePage } from "./features/customer/ProfilePage";
-import { JobDetailPage, JobsListPage, OffersPage, ProviderDashboard, RatingsPage } from "./features/provider/ProviderJobsPages";
-import { AvailabilityPage, CoveragePage, EarningsPage, ProviderProfilePage } from "./features/provider/ProviderSettingsPages";
 import { LoginPage, RegisterPage } from "./features/public/AuthPages";
 import { HelpPage, HowItWorksPage, NotFoundPage, ServicesPage } from "./features/public/InfoPages";
 import { JoinPage } from "./features/public/JoinPage";
 import { LandingPage } from "./features/public/LandingPage";
-import { NotificationsPage } from "./features/shared/NotificationsPage";
+
+// Signed-in areas load on demand so visitors only download the public site.
+function lazyNamed<M, K extends keyof M>(loader: () => Promise<M>, name: K) {
+  type C = M[K] extends ComponentType<infer P> ? ComponentType<P> : never;
+  return lazy(async () => ({ default: (await loader())[name] as unknown as C }));
+}
+
+const AdminBookingDetailPage = lazyNamed(() => import("./features/admin/AdminBookings"), "AdminBookingDetailPage");
+const AdminBookingsPage = lazyNamed(() => import("./features/admin/AdminBookings"), "AdminBookingsPage");
+const AdminAreasPage = lazyNamed(() => import("./features/admin/AdminCatalog"), "AdminAreasPage");
+const AdminServicesPage = lazyNamed(() => import("./features/admin/AdminCatalog"), "AdminServicesPage");
+const AdminOverview = lazyNamed(() => import("./features/admin/AdminOverview"), "AdminOverview");
+const AdminCustomersPage = lazyNamed(() => import("./features/admin/AdminPeople"), "AdminCustomersPage");
+const AdminProviderDetailPage = lazyNamed(() => import("./features/admin/AdminPeople"), "AdminProviderDetailPage");
+const AdminProvidersPage = lazyNamed(() => import("./features/admin/AdminPeople"), "AdminProvidersPage");
+const BookingDetailPage = lazyNamed(() => import("./features/customer/BookingDetailPage"), "BookingDetailPage");
+const BookingsPage = lazyNamed(() => import("./features/customer/CustomerPages"), "BookingsPage");
+const CustomerDashboard = lazyNamed(() => import("./features/customer/CustomerPages"), "CustomerDashboard");
+const MyReviewsPage = lazyNamed(() => import("./features/customer/CustomerPages"), "MyReviewsPage");
+const NewBookingPage = lazyNamed(() => import("./features/customer/NewBookingPage"), "NewBookingPage");
+const ProfilePage = lazyNamed(() => import("./features/customer/ProfilePage"), "ProfilePage");
+const JobDetailPage = lazyNamed(() => import("./features/provider/ProviderJobsPages"), "JobDetailPage");
+const JobsListPage = lazyNamed(() => import("./features/provider/ProviderJobsPages"), "JobsListPage");
+const OffersPage = lazyNamed(() => import("./features/provider/ProviderJobsPages"), "OffersPage");
+const ProviderDashboard = lazyNamed(() => import("./features/provider/ProviderJobsPages"), "ProviderDashboard");
+const RatingsPage = lazyNamed(() => import("./features/provider/ProviderJobsPages"), "RatingsPage");
+const AvailabilityPage = lazyNamed(() => import("./features/provider/ProviderSettingsPages"), "AvailabilityPage");
+const CoveragePage = lazyNamed(() => import("./features/provider/ProviderSettingsPages"), "CoveragePage");
+const EarningsPage = lazyNamed(() => import("./features/provider/ProviderSettingsPages"), "EarningsPage");
+const ProviderProfilePage = lazyNamed(() => import("./features/provider/ProviderSettingsPages"), "ProviderProfilePage");
+const NotificationsPage = lazyNamed(() => import("./features/shared/NotificationsPage"), "NotificationsPage");
+const AdminAuditPage = lazyNamed(() => import("./features/admin/AdminOperations"), "AdminAuditPage");
+const AdminComplaintsPage = lazyNamed(() => import("./features/admin/AdminOperations"), "AdminComplaintsPage");
+const AdminPaymentsPage = lazyNamed(() => import("./features/admin/AdminOperations"), "AdminPaymentsPage");
+const AdminReviewsPage = lazyNamed(() => import("./features/admin/AdminOperations"), "AdminReviewsPage");
+const AdminSettingsPage = lazyNamed(() => import("./features/admin/AdminOperations"), "AdminSettingsPage");
+const AdminSettlementsPage = lazyNamed(() => import("./features/admin/AdminOperations"), "AdminSettlementsPage");
 
 export function App() {
   return (
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route element={<PublicLayout />}>
         <Route index element={<LandingPage />} />
@@ -89,5 +110,6 @@ export function App() {
         </Route>
       </Route>
     </Routes>
+    </Suspense>
   );
 }

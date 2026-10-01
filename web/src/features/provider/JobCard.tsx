@@ -47,7 +47,7 @@ export function JobCard({ job, children }: { job: Job; children?: React.ReactNod
                 <span className="badge tone-slate">{t("provider.expired")}</span>
               )
             ) : (
-              <BookingStatusBadge status={b.status} />
+              <BookingStatusBadge status={b.status} provider />
             )}
           </div>
           <div className="small muted row wrap" style={{ gap: "4px 14px" }}>
@@ -65,7 +65,7 @@ export function JobCard({ job, children }: { job: Job; children?: React.ReactNod
           {b.bathrooms > 0 && (
             <div className="small muted">
               {b.property_type && `${fmt.pick(b.property_type, "name")} · `}
-              {t("customer.rooms", { bedrooms: b.bedrooms, bathrooms: b.bathrooms })}
+              {fmt.rooms(b.bedrooms, b.bathrooms)}
             </div>
           )}
         </div>

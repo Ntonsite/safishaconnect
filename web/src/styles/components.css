@@ -987,6 +987,45 @@
 }
 
 /* Progress steps (booking wizard) */
+.booking-confirmation {
+  display: grid;
+  gap: var(--s-5);
+  padding: var(--s-6);
+  border: 1px solid var(--green-200);
+  border-radius: var(--radius-lg);
+  background: var(--green-50);
+}
+.booking-confirmation-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+.booking-confirmation-heading > svg {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  color: var(--green-700);
+}
+.booking-confirmation-heading h2 { font-size: var(--text-xl); }
+.booking-confirmation-heading p { margin-top: var(--s-1); color: var(--ink-2); max-width: 64ch; }
+.booking-confirmation-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-4);
+  margin: 0;
+  padding: var(--s-4) 0;
+  border-top: 1px solid var(--green-200);
+  border-bottom: 1px solid var(--green-200);
+}
+.booking-confirmation-facts div { min-width: 0; }
+.booking-confirmation-facts dt { color: var(--ink-3); font-size: var(--text-sm); }
+.booking-confirmation-facts dd { margin: 3px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .booking-confirmation { padding: var(--s-4); }
+  .booking-confirmation-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .booking-confirmation .btn { flex: 1 1 auto; }
+}
+
 .steps {
   display: flex;
   gap: 6px;
@@ -1081,4 +1120,20 @@
   border: 1px solid #f4e3bf;
   border-radius: var(--radius-pill);
   padding: 2px 10px;
+}
+
+.included-tag {
+  color: var(--green-700);
+  font-weight: 600;
+}
+
+.earnings-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.earnings-summary-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-4);
 }

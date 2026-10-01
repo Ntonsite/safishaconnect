@@ -22,6 +22,8 @@ export function useFormat() {
         if (d.hours === 0) return t("common.minutes", { count: d.minutes });
         return d.minutes ? t("common.duration", d) : t("common.durationHours", d);
       },
+      rooms: (bedrooms: number, bathrooms: number) =>
+        `${t("common.bedroomCount", { count: bedrooms })} · ${t("common.bathroomCount", { count: bathrooms })}`,
       pick: <T extends object>(obj: T, field: string) => pick(obj, field, locale),
     }),
     [locale, currency, t],

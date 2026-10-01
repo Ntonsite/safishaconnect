@@ -91,4 +91,7 @@ class Repository {
 
   Future<void> review(String bookingId, int rating, String? comment) =>
       api.post('/reviews', {'booking_id': bookingId, 'rating': rating, 'comment': comment});
+
+  Future<void> reportIssue(String bookingId, String category, String description) =>
+      api.post('/complaints', {'booking_id': bookingId, 'category': category, 'description': description});
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users } from "lucide-react";
+import { BadgeCheck, Users } from "lucide-react";
 import { adminApi } from "../../api/endpoints";
 import type { CustomerRow, ProviderType, VerificationStatus } from "../../api/types";
 import { BookingRow } from "../../shared/components/BookingBits";
@@ -65,7 +65,16 @@ export function AdminProvidersPage() {
       </div>
       {query.isLoading && <SkeletonCard lines={5} />}
       {query.error && <ErrorState error={query.error} onRetry={() => query.refetch()} />}
-      {query.data && (
+      {query.data?.items.length === 0 && (
+        <div className="card">
+          <EmptyState
+            icon={BadgeCheck}
+            title={status === "PENDING" ? t("admin.noPendingProviders") : t("admin.noMatchingProviders")}
+            body={status === "PENDING" ? t("admin.noPendingProvidersBody") : undefined}
+          />
+        </div>
+      )}
+      {!!query.data?.items.length && (
         <div className="card card-flush">
           <div className="table-wrap">
             <table className="table">

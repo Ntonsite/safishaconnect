@@ -616,3 +616,59 @@
 .toolbar .grow {
   min-width: 220px;
 }
+
+/* Grid children must be allowed to shrink, otherwise horizontally scrolling rows blow out the page. */
+.detail-grid > * {
+  min-width: 0;
+}
+
+/* Booking wizard actions: inline on desktop, a sticky bar with the live total on mobile. */
+.wizard-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+.wizard-total {
+  display: none;
+}
+@media (max-width: 960px) {
+  .wizard-actions {
+    position: sticky;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    z-index: 15;
+    padding: var(--s-3);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+  }
+  .wizard-total {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+    margin-right: auto;
+  }
+  .wizard-total span {
+    font-size: var(--text-xs);
+    color: var(--ink-3);
+  }
+  .wizard-total strong {
+    font-size: var(--text-md);
+    font-variant-numeric: tabular-nums;
+  }
+  .wizard-actions .btn-lg {
+    --btn-h: 48px;
+    padding: 0 var(--s-5);
+  }
+  /* The live total lives in the sticky bar; the full summary leads the review step. */
+  .wizard:not(.is-review) .detail-aside {
+    display: none;
+  }
+  .wizard.is-review .detail-aside {
+    order: -1;
+  }
+  .wizard.is-review .wizard-actions .btn-primary {
+    flex: 1;
+  }
+}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
-import { Banknote, CalendarDays, Clock, CreditCard, MapPin, ShieldCheck, Smartphone, SprayCan } from "lucide-react";
+import { Banknote, CalendarDays, Clock, CreditCard, MapPin, ShieldCheck, Smartphone } from "lucide-react";
 import clsx from "clsx";
 import { customerApi, publicApi } from "../../api/endpoints";
 import type { PaymentMethod, QuoteRequest, Service } from "../../api/types";
@@ -166,7 +166,7 @@ export function NewBookingPage() {
         ))}
       </ol>
 
-      <div className="detail-grid">
+      <div className={clsx("detail-grid wizard", step === 4 && "is-review")}>
         <div className="stack-lg">
           {step === 0 && (
             <section className="stack">
@@ -415,21 +415,23 @@ export function NewBookingPage() {
                   })}
                 </div>
               </div>
-              <Alert tone="success">
-                <span className="row" style={{ gap: 8 }}>
-                  <SprayCan size={16} aria-hidden /> {t("booking.materialsIncluded")}
-                </span>
-              </Alert>
+              <Alert tone="success">{t("booking.materialsIncluded")}</Alert>
             </section>
           )}
 
-          <div className="row-between">
+          <div className="wizard-actions">
             {step > 0 ? (
               <Button variant="secondary" onClick={() => setStep((step - 1) as Step)}>
                 {t("common.back")}
               </Button>
             ) : (
               <span />
+            )}
+            {step > 0 && step < 4 && quote.data && (
+              <div className="wizard-total">
+                <span>{t("common.total")}</span>
+                <strong>{fmt.money(quote.data.total_amount, quote.data.currency)}</strong>
+              </div>
             )}
             {step > 0 && (
               <Button size="lg" onClick={next} loading={create.isPending} disabled={step === 1 && quote.isFetching && !quote.data}>
@@ -452,7 +454,7 @@ export function NewBookingPage() {
                   <div className="grow">
                     <div className="strong">{fmt.pick(service, "name")}</div>
                     {service.uses_rooms && (
-                      <div className="small muted">{t("customer.rooms", { bedrooms, bathrooms })}</div>
+                      <div className="small muted">{fmt.rooms(bedrooms, bathrooms)}</div>
                     )}
                   </div>
                 </div>

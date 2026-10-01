@@ -33,7 +33,8 @@ export function AdminOverview() {
     { label: t("admin.metrics.openComplaints"), value: s.open_complaints },
   ];
   const attention = [
-    { count: s.pending_assignments, text: t("admin.attention.assignment", { count: s.pending_assignments }), icon: ListChecks, to: "/admin/bookings?status=REASSIGNMENT_REQUIRED" },
+    { count: s.bookings_by_status.FINDING_PROVIDER ?? 0, text: t("admin.attention.assignment", { count: s.bookings_by_status.FINDING_PROVIDER ?? 0 }), icon: ListChecks, to: "/admin/bookings?status=FINDING_PROVIDER" },
+    { count: s.bookings_by_status.REASSIGNMENT_REQUIRED ?? 0, text: t("admin.attention.reassignment", { count: s.bookings_by_status.REASSIGNMENT_REQUIRED ?? 0 }), icon: ListChecks, to: "/admin/bookings?status=REASSIGNMENT_REQUIRED" },
     { count: s.providers_awaiting_verification, text: t("admin.attention.verification", { count: s.providers_awaiting_verification }), icon: BadgeCheck, to: "/admin/providers?status=PENDING" },
     { count: s.open_complaints, text: t("admin.attention.complaints", { count: s.open_complaints }), icon: MessageSquareWarning, to: "/admin/complaints?status=OPEN" },
     { count: s.cash_awaiting_confirmation, text: t("admin.attention.cash", { count: s.cash_awaiting_confirmation }), icon: Banknote, to: "/admin/payments?status=PENDING" },

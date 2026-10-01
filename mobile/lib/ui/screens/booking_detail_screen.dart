@@ -120,6 +120,59 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     if (ok == true) await _run(() => _repo.cancel(widget.bookingId));
   }
 
+  Future<void> _reportIssue() async {
+    final l = AppLocalizations.of(context);
+    final description = TextEditingController();
+    var category = 'QUALITY';
+    final categories = [
+      ('QUALITY', l.issueQuality),
+      ('LATE_OR_NO_SHOW', l.issueLate),
+      ('DAMAGE', l.issueDamage),
+      ('CONDUCT', l.issueConduct),
+      ('PAYMENT', l.issuePayment),
+      ('OTHER', l.issueOther),
+    ];
+    final result = await showDialog<(String, String)>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(l.reportIssue),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              DropdownButtonFormField<String>(
+                initialValue: category,
+                decoration: InputDecoration(labelText: l.issueCategory),
+                items: [for (final item in categories) DropdownMenuItem(value: item.$1, child: Text(item.$2))],
+                onChanged: (value) => setDialogState(() => category = value ?? category),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: description,
+                maxLines: 4,
+                maxLength: 2000,
+                decoration: InputDecoration(labelText: l.issueDescription, helperText: l.issueDescriptionHint),
+                onChanged: (_) => setDialogState(() {}),
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l.back)),
+            FilledButton(
+              onPressed: description.text.trim().length < 10
+                  ? null
+                  : () => Navigator.pop(ctx, (category, description.text.trim())),
+              child: Text(l.sendIssue),
+            ),
+          ],
+        ),
+      ),
+    );
+    description.dispose();
+    if (result != null) {
+      await _run(() => _repo.reportIssue(widget.bookingId, result.$1, result.$2), success: l.issueSent);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -139,12 +192,25 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       children: [
         if (widget.justCreated && (b.status == 'FINDING_PROVIDER' || b.status == 'REASSIGNMENT_REQUIRED')) ...[
           Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: Brand.green50, borderRadius: BorderRadius.circular(12)),
-            child: Row(children: [
-              const Icon(Icons.check_circle, color: Brand.green600),
-              const SizedBox(width: 10),
-              Expanded(child: Text(l.bookingConfirmed, style: const TextStyle(color: Brand.green900))),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Brand.green50,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Brand.green100),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Icon(Icons.check_circle, color: Brand.green700, size: 28),
+                const SizedBox(width: 10),
+                Expanded(child: Text(l.bookingConfirmed, style: Theme.of(context).textTheme.titleMedium)),
+              ]),
+              const SizedBox(height: 12),
+              Text('${l.bookingReference}: ${b.reference}', style: const TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text('${b.serviceName(locale)} · ${formatDate(context, b.date)} · ${b.startTime}'),
+              Text('${b.areaName} · ${formatMoney(b.total, b.currency)}'),
+              const SizedBox(height: 10),
+              Text(l.findingProvider, style: const TextStyle(color: Brand.ink2)),
             ]),
           ),
           const SizedBox(height: 12),
@@ -174,6 +240,14 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 icon: const Icon(Icons.check_circle_outline),
                 label: Text(l.confirmCompletion),
               ),
+              if (b.can('REPORT_ISSUE')) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _busy ? null : _reportIssue,
+                  icon: const Icon(Icons.report_outlined),
+                  label: Text(l.reportIssue),
+                ),
+              ],
             ]),
           ),
           const SizedBox(height: 12),

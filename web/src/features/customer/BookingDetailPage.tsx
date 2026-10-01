@@ -8,7 +8,7 @@ import type { BookingDetail, ComplaintCategory } from "../../api/types";
 import { useBrand } from "../../config/brand";
 import { PriceBreakdown, ProgressTimeline } from "../../shared/components/BookingBits";
 import { RatingSummary, StarInput, Stars } from "../../shared/components/Brand";
-import { Button } from "../../shared/components/Button";
+import { Button, ButtonLink } from "../../shared/components/Button";
 import { PageHeader } from "../../shared/components/Controls";
 import { Alert, ErrorState, PageLoader } from "../../shared/components/Feedback";
 import { Field, Select, Textarea } from "../../shared/components/Field";
@@ -76,14 +76,30 @@ export function BookingDetailPage() {
       />
 
       {isNew && (
-        <Alert tone="success">
-          <strong>{t("booking.confirmedTitle")}</strong> — {t("booking.confirmedBody")}
-        </Alert>
+        <section className="booking-confirmation" aria-labelledby="booking-confirmation-title">
+          <div className="booking-confirmation-heading">
+            <CheckCircle2 aria-hidden />
+            <div>
+              <h2 id="booking-confirmation-title">{t("booking.confirmedTitle")}</h2>
+              <p>{t("booking.confirmedBody")}</p>
+            </div>
+          </div>
+          <dl className="booking-confirmation-facts">
+            <div><dt>{t("common.reference")}</dt><dd className="num">{b.reference}</dd></div>
+            <div><dt>{t("common.service")}</dt><dd>{fmt.pick(b.service, "name")}</dd></div>
+            <div><dt>{t("booking.when")}</dt><dd>{fmt.dateLong(b.scheduled_date)} · {fmt.time(b.scheduled_start_time)}</dd></div>
+            <div><dt>{t("common.total")}</dt><dd>{fmt.money(b.total_amount, b.currency)}</dd></div>
+          </dl>
+          <div className="row wrap">
+            <a className="btn btn-primary" href="#booking-progress">{t("booking.trackBooking")}</a>
+            <ButtonLink to="/app/bookings" variant="secondary">{t("nav.myBookings")}</ButtonLink>
+          </div>
+        </section>
       )}
 
       <div className="detail-grid">
         <div className="stack-lg">
-          <section className="card stack">
+          <section id="booking-progress" className="card stack">
             <div className="row-between wrap">
               <h2 className="card-title">{t("customer.progress")}</h2>
             </div>
@@ -145,7 +161,7 @@ export function BookingDetailPage() {
                 {[b.property_type && fmt.pick(b.property_type, "name"), b.size && fmt.pick(b.size, "name")]
                   .filter(Boolean)
                   .join(" · ") || fmt.pick(b.service, "name")}
-                {b.bathrooms > 0 && <div className="small muted">{t("customer.rooms", { bedrooms: b.bedrooms, bathrooms: b.bathrooms })}</div>}
+                {b.bathrooms > 0 && <div className="small muted">{fmt.rooms(b.bedrooms, b.bathrooms)}</div>}
               </dd>
               {b.special_instructions && (
                 <>

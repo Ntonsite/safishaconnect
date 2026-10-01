@@ -217,6 +217,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Booking confirmed — we\'re finding you a verified cleaner.';
 
   @override
+  String get bookingReference => 'Booking reference';
+
+  @override
+  String get findingProvider =>
+      'We\'re finding a verified cleaner for you. Follow the progress below.';
+
+  @override
   String get progress => 'Progress';
 
   @override
@@ -250,6 +257,42 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get confirmCompletionBody =>
       'Happy with the cleaning? Confirm so we can close the booking.';
+
+  @override
+  String get reportIssue => 'Report an issue';
+
+  @override
+  String get issueCategory => 'What went wrong?';
+
+  @override
+  String get issueDescription => 'Tell us what happened';
+
+  @override
+  String get issueDescriptionHint => 'Please enter at least 10 characters.';
+
+  @override
+  String get issueSent => 'Your issue has been sent to Safisha support.';
+
+  @override
+  String get issueQuality => 'Cleaning quality';
+
+  @override
+  String get issueLate => 'Late or no show';
+
+  @override
+  String get issueDamage => 'Damage';
+
+  @override
+  String get issueConduct => 'Provider conduct';
+
+  @override
+  String get issuePayment => 'Payment';
+
+  @override
+  String get issueOther => 'Other';
+
+  @override
+  String get sendIssue => 'Send issue';
 
   @override
   String get cancelBooking => 'Cancel booking';
@@ -298,7 +341,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String rooms(int bedrooms, int bathrooms) {
-    return '$bedrooms bedrooms · $bathrooms bathrooms';
+    String _temp0 = intl.Intl.pluralLogic(
+      bedrooms,
+      locale: localeName,
+      other: '$bedrooms bedrooms',
+      one: '1 bedroom',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      bathrooms,
+      locale: localeName,
+      other: '$bathrooms bathrooms',
+      one: '1 bathroom',
+    );
+    return '$_temp0 · $_temp1';
   }
 
   @override
@@ -363,4 +418,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get demoData => 'Demo data';
+
+  @override
+  String get materialsLine => 'Equipment & materials';
+
+  @override
+  String get included => 'Included';
 }

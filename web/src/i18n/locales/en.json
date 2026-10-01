@@ -67,7 +67,12 @@
     "yearsExperience_other": "{{count}} years experience",
     "individual": "Individual cleaner",
     "company": "Cleaning company",
-    "skipToContent": "Skip to content"
+    "skipToContent": "Skip to content",
+    "bedroomCount_one": "{{count}} bedroom",
+    "bedroomCount_other": "{{count}} bedrooms",
+    "bathroomCount_one": "{{count}} bathroom",
+    "bathroomCount_other": "{{count}} bathrooms",
+    "included": "Included"
   },
   "nav": {
     "services": "Services",
@@ -223,7 +228,18 @@
       "Vacuum & mops",
       "Microfibre cloths",
       "Scrubbers & tools"
-    ]
+    ],
+    "heroPanel": {
+      "title": "Every booking includes",
+      "items": [
+        "A verified provider, assigned by us",
+        "Equipment & materials brought to you",
+        "A fixed price before you confirm",
+        "Cash payment after the cleaning"
+      ],
+      "from": "Prices from {{price}}",
+      "seeServices": "See all services"
+    }
   },
   "servicesPage": {
     "title": "Our cleaning services",
@@ -365,11 +381,13 @@
     "priceNote": "Fixed price — no extra charges at your door.",
     "confirmedTitle": "Booking confirmed",
     "confirmedBody": "We're finding a verified cleaner for you now. You'll see their details here as soon as they accept.",
+    "trackBooking": "Track booking",
     "viewBooking": "Track booking",
     "bookAnother": "Book another cleaning",
     "when": "When",
     "where": "Where",
-    "price": "Price"
+    "price": "Price",
+    "materialsLine": "Equipment & materials"
   },
   "status": {
     "booking": {
@@ -404,6 +422,11 @@
     },
     "adminBooking": {
       "REASSIGNMENT_REQUIRED": "Needs assignment"
+    },
+    "providerBooking": {
+      "PROVIDER_ASSIGNED": "Job assigned",
+      "PROVIDER_EN_ROUTE": "On the way",
+      "PROVIDER_ARRIVED": "Arrived"
     },
     "payment": {
       "PENDING": "Pending",
@@ -466,7 +489,7 @@
     "dashboardSubtitle": "Here's what's happening with your cleaning.",
     "upcoming": "Upcoming & active",
     "noActive": "No upcoming cleanings",
-    "noActiveBody": "Book a cleaning and we'll take care of the rest.",
+    "noActiveBody": "Ready for a cleaner space? Booking takes about two minutes.",
     "recent": "Recent bookings",
     "history": "Booking history",
     "noHistory": "No past bookings yet.",
@@ -480,7 +503,6 @@
     "awaitingCleaner": "We're matching you with a verified cleaner. This usually takes a few minutes.",
     "callCleaner": "Call",
     "property": "Property",
-    "rooms": "{{bedrooms}} bedrooms · {{bathrooms}} bathrooms",
     "instructions": "Instructions",
     "priceBreakdown": "Price breakdown",
     "payment": "Payment",
@@ -540,7 +562,7 @@
     },
     "newRequests": "New job requests",
     "noOffers": "No job requests right now",
-    "noOffersBody": "New requests appear here. Keep your availability up to date to receive more.",
+    "noOffersBody": "We'll notify you as soon as an eligible request is available. Keep your working hours up to date to receive more.",
     "noActive": "No active jobs",
     "noActiveBody": "Accepted jobs will appear here.",
     "noCompleted": "No completed jobs yet",
@@ -563,7 +585,7 @@
     "rejectTitle": "Reject this job?",
     "rejectReason": "Reason (optional)",
     "withdrawTitle": "Release this job?",
-    "withdrawBody": "We'll offer it to another cleaner. Releasing jobs often affects your ranking.",
+    "withdrawBody": "We'll offer it to another provider. Releasing jobs often affects your ranking.",
     "cashTitle": "Confirm cash received",
     "cashBody": "Confirm that the customer paid {{amount}} in cash.",
     "jobAccepted": "Job accepted. The customer has been notified.",
@@ -591,7 +613,8 @@
     "noReviews": "No reviews yet. Great work earns great reviews!",
     "profileTitle": "Provider profile",
     "verificationHistory": "Verification history",
-    "displayName": "Display name"
+    "displayName": "Display name",
+    "earningsCard": "Earnings"
   },
   "admin": {
     "overviewTitle": "Platform overview",
@@ -618,12 +641,17 @@
       "verification_other": "{{count}} providers waiting for verification",
       "assignment_one": "{{count}} booking needs a provider",
       "assignment_other": "{{count}} bookings need a provider",
+      "reassignment_one": "{{count}} booking needs reassignment",
+      "reassignment_other": "{{count}} bookings need reassignment",
       "complaints_one": "{{count}} open complaint",
       "complaints_other": "{{count}} open complaints",
       "cash_one": "{{count}} cash payment to confirm",
       "cash_other": "{{count}} cash payments to confirm"
     },
     "bookingsByStatus": "Bookings by status",
+    "noMatchingBookings": "No bookings match these filters",
+    "noMatchingBookingsBody": "Try a different status, area or date range.",
+    "clearFilters": "Clear filters",
     "filters": "Filters",
     "allStatuses": "All statuses",
     "allServices": "All services",
@@ -733,7 +761,10 @@
     "auditAction": "Action",
     "auditEntity": "Entity",
     "auditDetails": "Details",
-    "system": "System"
+    "system": "System",
+    "noPendingProviders": "No providers are awaiting verification",
+    "noPendingProvidersBody": "New applications will appear here for review.",
+    "noMatchingProviders": "No providers match these filters"
   },
   "notifications": {
     "title": "Notifications",

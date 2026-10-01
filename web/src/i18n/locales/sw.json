@@ -67,7 +67,12 @@
     "yearsExperience_other": "Uzoefu wa miaka {{count}}",
     "individual": "Msafishaji binafsi",
     "company": "Kampuni ya usafi",
-    "skipToContent": "Ruka hadi maudhui"
+    "skipToContent": "Ruka hadi maudhui",
+    "bedroomCount_one": "Chumba {{count}} cha kulala",
+    "bedroomCount_other": "Vyumba {{count}} vya kulala",
+    "bathroomCount_one": "Bafu {{count}}",
+    "bathroomCount_other": "Mabafu {{count}}",
+    "included": "Vimejumuishwa"
   },
   "nav": {
     "services": "Huduma",
@@ -223,7 +228,18 @@
       "Mashine ya vumbi na mopu",
       "Vitambaa vya microfibre",
       "Brashi na vifaa vingine"
-    ]
+    ],
+    "heroPanel": {
+      "title": "Kila oda inajumuisha",
+      "items": [
+        "Mtoa huduma aliyethibitishwa, tunakupangia sisi",
+        "Vifaa na dawa za usafi vinaletwa kwako",
+        "Bei maalum kabla hujathibitisha",
+        "Malipo ya taslimu baada ya usafi"
+      ],
+      "from": "Bei kuanzia {{price}}",
+      "seeServices": "Ona huduma zote"
+    }
   },
   "servicesPage": {
     "title": "Huduma zetu za usafi",
@@ -365,11 +381,13 @@
     "priceNote": "Bei maalum — hakuna gharama za ziada mlangoni.",
     "confirmedTitle": "Oda imethibitishwa",
     "confirmedBody": "Tunakutafutia msafishaji aliyethibitishwa sasa hivi. Utaona taarifa zake hapa mara tu atakapokubali.",
+    "trackBooking": "Fuatilia oda",
     "viewBooking": "Fuatilia oda",
     "bookAnother": "Agiza usafi mwingine",
     "when": "Lini",
     "where": "Wapi",
-    "price": "Bei"
+    "price": "Bei",
+    "materialsLine": "Vifaa na dawa za usafi"
   },
   "status": {
     "booking": {
@@ -404,6 +422,11 @@
     },
     "adminBooking": {
       "REASSIGNMENT_REQUIRED": "Inahitaji kupangiwa"
+    },
+    "providerBooking": {
+      "PROVIDER_ASSIGNED": "Kazi imepangwa",
+      "PROVIDER_EN_ROUTE": "Njiani",
+      "PROVIDER_ARRIVED": "Amefika"
     },
     "payment": {
       "PENDING": "Inasubiri",
@@ -466,7 +489,7 @@
     "dashboardSubtitle": "Hiki ndicho kinachoendelea na usafi wako.",
     "upcoming": "Zijazo na zinazoendelea",
     "noActive": "Hakuna usafi uliopangwa",
-    "noActiveBody": "Agiza usafi na sisi tutashughulikia mengine.",
+    "noActiveBody": "Uko tayari kwa mazingira safi? Kuagiza huchukua takriban dakika mbili.",
     "recent": "Oda za hivi karibuni",
     "history": "Historia ya oda",
     "noHistory": "Bado hakuna oda zilizopita.",
@@ -480,7 +503,6 @@
     "awaitingCleaner": "Tunakuunganisha na msafishaji aliyethibitishwa. Kwa kawaida huchukua dakika chache.",
     "callCleaner": "Piga simu",
     "property": "Makazi",
-    "rooms": "Vyumba vya kulala {{bedrooms}} · Mabafu {{bathrooms}}",
     "instructions": "Maelekezo",
     "priceBreakdown": "Mchanganuo wa bei",
     "payment": "Malipo",
@@ -540,7 +562,7 @@
     },
     "newRequests": "Maombi mapya ya kazi",
     "noOffers": "Hakuna maombi ya kazi kwa sasa",
-    "noOffersBody": "Maombi mapya yataonekana hapa. Weka saa zako za kazi sawasawa ili upate kazi zaidi.",
+    "noOffersBody": "Tutakujulisha mara tu ombi linalokufaa likipatikana. Weka saa zako za kazi sawasawa ili upate kazi zaidi.",
     "noActive": "Hakuna kazi zinazoendelea",
     "noActiveBody": "Kazi ulizokubali zitaonekana hapa.",
     "noCompleted": "Bado hakuna kazi zilizokamilika",
@@ -563,7 +585,7 @@
     "rejectTitle": "Kataa kazi hii?",
     "rejectReason": "Sababu (si lazima)",
     "withdrawTitle": "Achia kazi hii?",
-    "withdrawBody": "Tutaipeleka kwa msafishaji mwingine. Kuachia kazi mara kwa mara kunashusha nafasi yako.",
+    "withdrawBody": "Tutaipeleka kwa mtoa huduma mwingine. Kuachia kazi mara kwa mara kunashusha nafasi yako.",
     "cashTitle": "Thibitisha malipo ya taslimu",
     "cashBody": "Thibitisha kuwa mteja amelipa {{amount}} taslimu.",
     "jobAccepted": "Umekubali kazi. Mteja amejulishwa.",
@@ -591,7 +613,8 @@
     "noReviews": "Bado hakuna maoni. Kazi nzuri huleta maoni mazuri!",
     "profileTitle": "Wasifu wa mtoa huduma",
     "verificationHistory": "Historia ya uthibitisho",
-    "displayName": "Jina linaloonyeshwa"
+    "displayName": "Jina linaloonyeshwa",
+    "earningsCard": "Mapato"
   },
   "admin": {
     "overviewTitle": "Muhtasari wa jukwaa",
@@ -618,12 +641,17 @@
       "verification_other": "Watoa huduma {{count}} wanasubiri uthibitisho",
       "assignment_one": "Oda {{count}} zinahitaji mtoa huduma",
       "assignment_other": "Oda {{count}} zinahitaji mtoa huduma",
+      "reassignment_one": "Oda {{count}} inahitaji kupewa mtoa huduma mwingine",
+      "reassignment_other": "Oda {{count}} zinahitaji kupewa watoa huduma wengine",
       "complaints_one": "Malalamiko {{count}} yaliyo wazi",
       "complaints_other": "Malalamiko {{count}} yaliyo wazi",
       "cash_one": "Malipo {{count}} ya taslimu ya kuthibitisha",
       "cash_other": "Malipo {{count}} ya taslimu ya kuthibitisha"
     },
     "bookingsByStatus": "Oda kwa hali",
+    "noMatchingBookings": "Hakuna oda zinazolingana na vichujio hivi",
+    "noMatchingBookingsBody": "Jaribu hali, eneo au tarehe nyingine.",
+    "clearFilters": "Ondoa vichujio",
     "filters": "Vichujio",
     "allStatuses": "Hali zote",
     "allServices": "Huduma zote",
@@ -733,7 +761,10 @@
     "auditAction": "Kitendo",
     "auditEntity": "Kipengele",
     "auditDetails": "Maelezo",
-    "system": "Mfumo"
+    "system": "Mfumo",
+    "noPendingProviders": "Hakuna watoa huduma wanaosubiri uthibitisho",
+    "noPendingProvidersBody": "Maombi mapya yataonekana hapa kwa ajili ya kupitiwa.",
+    "noMatchingProviders": "Hakuna watoa huduma wanaolingana na vichujio hivi"
   },
   "notifications": {
     "title": "Taarifa",

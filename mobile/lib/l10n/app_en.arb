@@ -19,7 +19,13 @@
   "invalidPhone": "Enter a valid Tanzanian mobile number.",
   "invalidPassword": "At least 8 characters, with a letter and a number.",
   "hello": "Habari, {name}",
-  "@hello": { "placeholders": { "name": { "type": "String" } } },
+  "@hello": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "homeSubtitle": "Here's what's happening with your cleaning.",
   "bookCleaning": "Book a cleaning",
   "upcoming": "Upcoming & active",
@@ -33,7 +39,13 @@
   "language": "Language",
   "chooseService": "What would you like cleaned?",
   "fromPrice": "From {price}",
-  "@fromPrice": { "placeholders": { "price": { "type": "String" } } },
+  "@fromPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "stepService": "Service",
   "stepDetails": "Details",
   "stepLocation": "Location",
@@ -66,8 +78,16 @@
   "continueLabel": "Continue",
   "back": "Back",
   "confirmBooking": "Confirm booking · {price}",
-  "@confirmBooking": { "placeholders": { "price": { "type": "String" } } },
+  "@confirmBooking": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "bookingConfirmed": "Booking confirmed — we're finding you a verified cleaner.",
+  "bookingReference": "Booking reference",
+  "findingProvider": "We're finding a verified cleaner for you. Follow the progress below.",
   "progress": "Progress",
   "yourCleaner": "Your cleaner",
   "awaitingCleaner": "We're matching you with a verified cleaner. This usually takes a few minutes.",
@@ -79,6 +99,18 @@
   "payment": "Payment",
   "confirmCompletion": "Confirm job completed",
   "confirmCompletionBody": "Happy with the cleaning? Confirm so we can close the booking.",
+  "reportIssue": "Report an issue",
+  "issueCategory": "What went wrong?",
+  "issueDescription": "Tell us what happened",
+  "issueDescriptionHint": "Please enter at least 10 characters.",
+  "issueSent": "Your issue has been sent to Safisha support.",
+  "issueQuality": "Cleaning quality",
+  "issueLate": "Late or no show",
+  "issueDamage": "Damage",
+  "issueConduct": "Provider conduct",
+  "issuePayment": "Payment",
+  "issueOther": "Other",
+  "sendIssue": "Send issue",
   "cancelBooking": "Cancel booking",
   "cancelConfirm": "Cancel this booking? Your cleaner will be notified.",
   "keep": "Keep booking",
@@ -91,11 +123,35 @@
   "genericError": "Something went wrong. Please try again.",
   "networkError": "We can't reach the server. Check your connection.",
   "minutes": "{count} min",
-  "@minutes": { "placeholders": { "count": { "type": "int" } } },
+  "@minutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hoursMinutes": "{hours}h {minutes}m",
-  "@hoursMinutes": { "placeholders": { "hours": { "type": "int" }, "minutes": { "type": "int" } } },
-  "rooms": "{bedrooms} bedrooms · {bathrooms} bathrooms",
-  "@rooms": { "placeholders": { "bedrooms": { "type": "int" }, "bathrooms": { "type": "int" } } },
+  "@hoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "rooms": "{bedrooms, plural, =1{1 bedroom} other{{bedrooms} bedrooms}} · {bathrooms, plural, =1{1 bathroom} other{{bathrooms} bathrooms}}",
+  "@rooms": {
+    "placeholders": {
+      "bedrooms": {
+        "type": "int"
+      },
+      "bathrooms": {
+        "type": "int"
+      }
+    }
+  },
   "verified": "Verified",
   "statusPENDING_CONFIRMATION": "Awaiting confirmation",
   "statusCONFIRMED": "Confirmed",
@@ -116,5 +172,7 @@
   "paymentREFUNDED": "Refunded",
   "paymentCANCELLED": "Cancelled",
   "serverAddress": "Server",
-  "demoData": "Demo data"
+  "demoData": "Demo data",
+  "materialsLine": "Equipment & materials",
+  "included": "Included"
 }
