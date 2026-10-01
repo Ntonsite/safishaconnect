@@ -6,7 +6,7 @@ COPY . .
 ARG VITE_API_BASE_URL=""
 ARG VITE_APP_NAME="SafishaCon"
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL VITE_APP_NAME=$VITE_APP_NAME
-RUN npm run build
+RUN npm run build && node scripts/precompress.mjs dist
 
 FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf

@@ -15,7 +15,17 @@ export default defineConfig(({ mode }) => {
         "/health": { target: apiTarget, changeOrigin: true },
       },
     },
-    build: { sourcemap: false, chunkSizeWarningLimit: 900 },
+    build: {
+      sourcemap: false,
+      chunkSizeWarningLimit: 900,
+      rollupOptions: {
+        // Fold tiny shared chunks (form controls, hooks shared by two lazy routes) back into their
+        // consumers; on high-latency mobile networks each extra request costs more than ~1 KB.
+        output: {
+          experimentalMinChunkSize: 4096,
+        },
+      },
+    },
     test: {
       environment: "jsdom",
       globals: true,

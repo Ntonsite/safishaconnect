@@ -1,19 +1,25 @@
 import { lazy, Suspense, type ComponentType } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { PageLoader } from "./shared/components/Feedback";
+import { loadAuthPages } from "./prefetch";
 import { RequireRole } from "./auth/RequireRole";
-import { AdminLayout, CustomerLayout, ProviderLayout } from "./layouts/RoleLayouts";
 import { PublicLayout } from "./layouts/PublicLayout";
-import { LoginPage, RegisterPage } from "./features/public/AuthPages";
 import { HelpPage, HowItWorksPage, NotFoundPage, ServicesPage } from "./features/public/InfoPages";
-import { JoinPage } from "./features/public/JoinPage";
 import { LandingPage } from "./features/public/LandingPage";
 
-// Signed-in areas load on demand so visitors only download the public site.
+// The landing page and light public pages ship in the entry chunk. Everything a visitor
+// doesn't need to see "/" — form libraries, signed-in shells and pages — loads on demand.
 function lazyNamed<M, K extends keyof M>(loader: () => Promise<M>, name: K) {
   type C = M[K] extends ComponentType<infer P> ? ComponentType<P> : never;
   return lazy(async () => ({ default: (await loader())[name] as unknown as C }));
 }
+
+const LoginPage = lazyNamed(loadAuthPages, "LoginPage");
+const RegisterPage = lazyNamed(loadAuthPages, "RegisterPage");
+const JoinPage = lazyNamed(() => import("./features/public/JoinPage"), "JoinPage");
+const CustomerLayout = lazyNamed(() => import("./layouts/RoleLayouts"), "CustomerLayout");
+const ProviderLayout = lazyNamed(() => import("./layouts/RoleLayouts"), "ProviderLayout");
+const AdminLayout = lazyNamed(() => import("./layouts/RoleLayouts"), "AdminLayout");
 
 const AdminBookingDetailPage = lazyNamed(() => import("./features/admin/AdminBookings"), "AdminBookingDetailPage");
 const AdminBookingsPage = lazyNamed(() => import("./features/admin/AdminBookings"), "AdminBookingsPage");

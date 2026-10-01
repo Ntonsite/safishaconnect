@@ -4,7 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@fontsource-variable/dm-sans";
 import "@fontsource-variable/fraunces";
-import "./i18n";
+import { i18nReady } from "./i18n";
 import "./styles/tokens.css";
 import "./styles/base.css";
 import "./styles/components.css";
@@ -12,6 +12,7 @@ import "./styles/layouts.css";
 import "./styles/landing.css";
 import { ApiError } from "./api/client";
 import { App } from "./App";
+import { prefetchLikelyNextChunks } from "./prefetch";
 import { AuthProvider } from "./auth/AuthContext";
 import { ConfigProvider } from "./config/brand";
 import { ToastProvider } from "./shared/components/Toast";
@@ -27,7 +28,8 @@ const queryClient = new QueryClient({
   },
 });
 
-createRoot(document.getElementById("root")!).render(
+void i18nReady.then(() => {
+  createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -41,4 +43,6 @@ createRoot(document.getElementById("root")!).render(
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,
-);
+  );
+  prefetchLikelyNextChunks();
+});

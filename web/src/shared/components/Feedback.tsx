@@ -26,6 +26,16 @@ export function PageLoader() {
   );
 }
 
+/** Placeholder while a route chunk loads: fills the viewport so nothing below it shifts (CLS). */
+export function RouteLoader() {
+  const { t } = useTranslation();
+  return (
+    <div className="page-loader route-loader">
+      <Spinner label={t("common.loading")} />
+    </div>
+  );
+}
+
 export function Skeleton({ height = 16, width = "100%", style }: { height?: number; width?: number | string; style?: React.CSSProperties }) {
   return <div className="skeleton" style={{ height, width, ...style }} aria-hidden />;
 }

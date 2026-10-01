@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +9,7 @@ import { notificationsApi } from "../api/endpoints";
 import { useConfig } from "../config/brand";
 import { LanguageSwitch, Logo } from "../shared/components/Brand";
 import { initials } from "../shared/utils/format";
+import { RouteLoader } from "../shared/components/Feedback";
 
 export interface NavItem {
   to: string;
@@ -111,7 +112,9 @@ export function AppShell({ home, groups, bottomNav, notificationsPath, narrow, t
           </Link>
         </header>
         <main id="main" className={clsx("app-content", narrow && "app-content-narrow")}>
-          <Outlet />
+          <Suspense fallback={<RouteLoader />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
 

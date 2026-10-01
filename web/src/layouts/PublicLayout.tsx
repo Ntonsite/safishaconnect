@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Menu, X } from "lucide-react";
@@ -6,6 +6,7 @@ import { homeFor, useAuth } from "../auth/AuthContext";
 import { useBrand } from "../config/brand";
 import { ButtonLink } from "../shared/components/Button";
 import { LanguageSwitch, Logo } from "../shared/components/Brand";
+import { RouteLoader } from "../shared/components/Feedback";
 
 export function PublicLayout() {
   const { t } = useTranslation();
@@ -87,7 +88,9 @@ export function PublicLayout() {
         </nav>
       )}
       <main id="main">
-        <Outlet />
+        <Suspense fallback={<RouteLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
       <SiteFooter />
     </>

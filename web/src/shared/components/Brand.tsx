@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { useBrand } from "../../config/brand";
-import { setLocale, SUPPORTED } from "../../i18n";
+import { prefetchLocale, setLocale, SUPPORTED } from "../../i18n";
 import type { Locale } from "../../api/types";
 
 /** Wordmark built from the configured brand name; the last "word part" is accented. */
@@ -35,7 +35,15 @@ export function LanguageSwitch() {
   const { i18n, t } = useTranslation();
   const current = (i18n.resolvedLanguage ?? "en") as Locale;
   return (
-    <div className="segmented" role="group" aria-label={t("common.language")}>
+    <div
+      className="segmented"
+      role="group"
+      aria-label={t("common.language")}
+      // Fetch the other language as soon as the user reaches for the switch, so the change is instant.
+      onPointerEnter={() => SUPPORTED.forEach(prefetchLocale)}
+      onTouchStart={() => SUPPORTED.forEach(prefetchLocale)}
+      onFocus={() => SUPPORTED.forEach(prefetchLocale)}
+    >
       {SUPPORTED.map((lng) => (
         <button
           key={lng}

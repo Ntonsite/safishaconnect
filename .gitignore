@@ -30,3 +30,6 @@ Thumbs.db
 
 # Build caches
 *.tsbuildinfo
+
+# Local scratch
+.tmp/
