@@ -6,7 +6,7 @@
 }
 .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   gap: var(--s-12);
   align-items: center;
 }
@@ -447,4 +447,26 @@
   margin-top: var(--s-3);
   color: var(--ink-2);
   max-width: 680px;
+}
+
+/* Quiet editorial photography; the primary action remains before imagery on mobile. */
+.hero-photo { display: block; max-width: 480px; width: 100%; justify-self: end; }
+.hero-photo img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--radius-lg); }
+.hero-benefits { margin-top: var(--s-10); }
+.hero-benefits .hero-panel ul { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-4); }
+.hero-benefits .hero-panel { box-shadow: none; }
+.area-photo { margin: 0; }
+.area-photo img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: var(--radius-lg); }
+.area-photo figcaption { margin-top: var(--s-3); color: var(--ink-3); font-size: var(--text-sm); }
+.areas-layout .section-head { margin-bottom: var(--s-6); }
+@media (max-width: 960px) {
+  .hero-photo { max-width: 640px; justify-self: start; }
+  .hero-photo img { aspect-ratio: 4 / 3; }
+  .hero-benefits .hero-panel ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .hero { padding: var(--s-8) 0; }
+  .hero-benefits .hero-panel ul { grid-template-columns: 1fr; }
+  .hero-lead { font-size: var(--text-lg); }
+  .hero-ctas { margin-top: var(--s-6); }
 }

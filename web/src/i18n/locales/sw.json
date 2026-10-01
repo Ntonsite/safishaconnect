@@ -239,6 +239,11 @@
       ],
       "from": "Bei kuanzia {{price}}",
       "seeServices": "Ona huduma zote"
+    },
+    "imagery": {
+      "heroAlt": "Mtaalamu wa usafi aliyevaa ovaroli akisafisha dirisha kwa kitambaa.",
+      "darAlt": "Mandhari ya majengo ya ghorofa, nyumba na mitende Dar es Salaam wakati wa mchana.",
+      "darCaption": "Dar es Salaam, Tanzania"
     }
   },
   "servicesPage": {

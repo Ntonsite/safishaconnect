@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { publicApi } from "../../api/endpoints";
 import { useBrand, useConfig } from "../../config/brand";
+import { brandImagery } from "../../config/imagery";
 import { ButtonLink } from "../../shared/components/Button";
 import { ServiceIcon, Stars } from "../../shared/components/Brand";
 import { Skeleton } from "../../shared/components/Feedback";
@@ -82,8 +83,15 @@ function Hero() {
             </ButtonLink>
           </div>
         </div>
-        <HeroPanel />
+        <picture className="hero-photo">
+          <source media="(max-width: 960px)" srcSet={brandImagery.hero.mobileSrcSet} sizes="(max-width: 600px) calc(100vw - 32px), 640px" width="800" height="600" />
+          <img src={brandImagery.hero.src} srcSet={brandImagery.hero.srcSet}
+            sizes="(max-width: 960px) calc(100vw - 48px), (max-width: 1280px) 40vw, 480px"
+            width={brandImagery.hero.width} height={brandImagery.hero.height}
+            alt={t(brandImagery.hero.altKey)} fetchPriority="high" decoding="async" />
+        </picture>
       </div>
+      <div className="container hero-benefits"><HeroPanel /></div>
     </section>
   );
 }
@@ -268,20 +276,29 @@ function AreasSection() {
   if (!data?.length) return null;
   return (
     <section className="section" aria-labelledby="areas-title">
-      <div className="container">
-        <div className="section-head">
-          <h2 id="areas-title" className="display">
-            {t("landing.areasTitle")}
-          </h2>
-          <p>{t("landing.areasSubtitle")}</p>
+      <div className="container split areas-layout">
+        <div>
+          <div className="section-head">
+            <h2 id="areas-title" className="display">
+              {t("landing.areasTitle")}
+            </h2>
+            <p>{t("landing.areasSubtitle")}</p>
+          </div>
+          <div className="area-chips">
+            {data.map((a) => (
+              <span className="chip" key={a.id}>
+                <MapPin aria-hidden /> {a.name}
+              </span>
+            ))}
+          </div>
         </div>
-        <div className="area-chips">
-          {data.map((a) => (
-            <span className="chip" key={a.id}>
-              <MapPin aria-hidden /> {a.name}
-            </span>
-          ))}
-        </div>
+        <figure className="area-photo">
+          <img src={brandImagery.dar.src} srcSet={brandImagery.dar.srcSet}
+            sizes="(max-width: 900px) calc(100vw - 48px), (max-width: 1280px) 45vw, 560px"
+            width={brandImagery.dar.width} height={brandImagery.dar.height}
+            alt={t(brandImagery.dar.altKey)} loading="lazy" decoding="async" />
+          <figcaption>{t("landing.imagery.darCaption")}</figcaption>
+        </figure>
       </div>
     </section>
   );
