@@ -3,7 +3,7 @@
 from app.models.booking import Booking, BookingPriceItem, BookingStatusHistory, ProviderAssignment
 from app.models.catalog import City, Service, ServiceArea, ServiceOption
 from app.models.feedback import Complaint, Review
-from app.models.payment import Payment, ProviderSettlement
+from app.models.payment import Payment, PaymentGatewayEvent, ProviderSettlement
 from app.models.provider import (
     Provider,
     ProviderAvailability,
@@ -24,6 +24,7 @@ __all__ = [
     "Customer",
     "Notification",
     "Payment",
+    "PaymentGatewayEvent",
     "PlatformSetting",
     "Provider",
     "ProviderAssignment",

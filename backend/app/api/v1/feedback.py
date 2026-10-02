@@ -9,6 +9,7 @@ from sqlalchemy import select
 from app.models import Complaint, Review
 from app.schemas.feedback import ComplaintCreate, ComplaintOut, ReviewCreate, ReviewOut
 from app.security.deps import CurrentCustomer, DbSession
+from app.security.rate_limit import write_rate_limit
 from app.services import bookings as booking_service
 from app.services import feedback
 
@@ -22,7 +23,8 @@ class ReviewIn(ReviewCreate):
 
 @reviews.post("", response_model=ReviewOut, status_code=status.HTTP_201_CREATED)
 def create_review(data: ReviewIn, customer: CurrentCustomer, db: DbSession) -> ReviewOut:
-    booking = booking_service.get_customer_booking(db, customer, data.booking_id)
+    write_rate_limit(customer.user_id, "review")
+    booking = booking_service.get_customer_booking(db, customer, data.booking_id, for_update=True)
     review = feedback.create_review(db, customer, booking, data)
     db.commit()
     db.refresh(review)
@@ -37,7 +39,8 @@ def my_reviews(customer: CurrentCustomer, db: DbSession) -> list[ReviewOut]:
 
 @complaints.post("", response_model=ComplaintOut, status_code=status.HTTP_201_CREATED)
 def create_complaint(data: ComplaintCreate, customer: CurrentCustomer, db: DbSession) -> ComplaintOut:
-    booking = booking_service.get_customer_booking(db, customer, data.booking_id)
+    write_rate_limit(customer.user_id, "complaint")
+    booking = booking_service.get_customer_booking(db, customer, data.booking_id, for_update=True)
     complaint = feedback.create_complaint(db, customer, booking, data)
     db.commit()
     db.refresh(complaint)

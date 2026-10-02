@@ -8,6 +8,7 @@ from enum import StrEnum
 
 from sqlalchemy.orm import Session
 
+from app.core import events
 from app.core.errors import InvalidTransitionError
 from app.core.logging import get_logger
 from app.models import Booking, BookingStatusHistory, User
@@ -114,6 +115,9 @@ def transition(
             note=note,
             created_at=now,
         )
+    )
+    events.publish(
+        db, events.BOOKING_STATUS_CHANGED, booking=booking.reference, from_status=current, to_status=target, actor=actor
     )
     log.info(
         "booking.status_changed",

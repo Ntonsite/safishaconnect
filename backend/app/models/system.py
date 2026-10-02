@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, String, Text, Uuid, func
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, Text, Uuid, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, UUIDPk
@@ -28,7 +28,16 @@ class Notification(UUIDPk, Base):
     """In-app notification. ``type`` + ``booking_reference`` let clients render localized text."""
 
     __tablename__ = "notifications"
-    __table_args__ = (Index("ix_notifications_user_unread", "user_id", "is_read"),)
+    __table_args__ = (
+        Index("ix_notifications_user_unread", "user_id", "is_read"),
+        Index("ix_notifications_user_created", "user_id", "created_at"),
+        # Outbox scan for external delivery (SMS/push): only rows still waiting.
+        Index(
+            "ix_notifications_delivery_due",
+            "next_attempt_at",
+            postgresql_where=text("delivery_status = 'PENDING'"),
+        ),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     channel: Mapped[NotificationChannel] = mapped_column(
@@ -41,6 +50,13 @@ class Notification(UUIDPk, Base):
     booking_reference: Mapped[str | None] = mapped_column(String(16))
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # External delivery outbox. NULL = in-app only (no SMS/push provider configured).
+    # The worker delivers PENDING rows after commit, with retries and backoff, so an SMS
+    # outage can never fail or slow down the booking that triggered the message.
+    delivery_status: Mapped[str | None] = mapped_column(String(16))
+    delivery_attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"), default=0)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 

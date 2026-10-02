@@ -19,10 +19,12 @@ React web app (customer site · provider portal · admin dashboard)
 FastAPI REST API  /api/v1   ← single source of truth for pricing, commission,
         │                     eligibility, booking state machine, payments, RBAC
         ▼
-PostgreSQL 16 (SQLAlchemy 2 + Alembic migrations)
+PostgreSQL 16 (SQLAlchemy 2 + Alembic migrations) ◄── worker (offer expiry, notification outbox)
 
 Flutter customer app ──► the same FastAPI REST API (no separate mobile backend)
 ```
+
+It's a **modular monolith**: one API, one worker and one PostgreSQL database. PostgreSQL row locks, version columns and constraints protect assignment and money flows. There is deliberately no Redis, Kafka or HAProxy yet; see [docs/PRODUCTION_ARCHITECTURE.md](docs/PRODUCTION_ARCHITECTURE.md) and the decision records in [docs/architecture/](docs/architecture/).
 
 | Component | Tech |
 |---|---|
@@ -30,7 +32,7 @@ Flutter customer app ──► the same FastAPI REST API (no separate mobile bac
 | Database | PostgreSQL 16 |
 | Web | React 18, TypeScript, Vite, React Router, TanStack Query, react-hook-form + zod, react-i18next |
 | Mobile | Flutter 3 / Dart 3, provider, http, flutter_secure_storage, gen-l10n (ARB) |
-| Infra | Docker Compose (db, api, web) with health checks; nginx serves the web build and proxies `/api` |
+| Infra | Docker Compose (db, api, worker, web) with health checks; nginx serves the web build and proxies `/api` |
 
 ---
 
@@ -43,7 +45,7 @@ cp .env.example .env          # optional: defaults work for local review
 docker compose up -d --build
 ```
 
-On startup the `api` container runs `alembic upgrade head` and then the idempotent seed, so the platform is usable immediately.
+On startup the `api` container runs `alembic upgrade head` and then the idempotent seed, so the platform is usable immediately. The `worker` container then starts. It expires unanswered job offers, re-dispatches them, and delivers queued SMS/push notifications.
 
 | What | URL |
 |---|---|
@@ -51,7 +53,8 @@ On startup the `api` container runs `alembic upgrade head` and then the idempote
 | API | http://localhost:8000 |
 | Swagger docs | http://localhost:8000/docs |
 | ReDoc | http://localhost:8000/redoc |
-| Health | http://localhost:8000/health |
+| Liveness / readiness | http://localhost:8000/health/live · http://localhost:8000/health/ready |
+| Prometheus metrics | http://localhost:8000/metrics |
 
 Stop with `docker compose down`. Add `-v` to also delete the database volume.
 
@@ -128,8 +131,25 @@ cd mobile
 flutter pub get
 flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000
 flutter run -d emulator-5554               # Android emulator defaults to http://10.0.2.2:8000
-flutter run --dart-define=API_BASE_URL=http://<your-LAN-IP>:8000   # physical device
+flutter run --dart-define=API_BASE_URL=http://<your-LAN-IP>:8000   # physical device over Wi-Fi
 ```
+
+**Physical Android phone over USB** (no Wi-Fi or firewall setup): tunnel the phone's `localhost:8000` to the API.
+
+```bash
+adb reverse tcp:8000 tcp:8000
+flutter run -d <device-id> --release --dart-define=API_BASE_URL=http://localhost:8000
+```
+
+**Full customer journey on a device:** this logs in as the demo customer and books a Deep Cleaning (3 bedrooms, 2 bathrooms, Mikocheni, tomorrow 10:00, cash). The demo cleaner's side runs through the real API: accept, en route, arrived, started, completed and cash. The test then confirms, rates and checks history, and saves screenshots to `docs/screenshots/mobile/`.
+
+```bash
+flutter drive -d <device-id> --driver=test_driver/integration_test.dart \
+  --target=integration_test/customer_journey_test.dart \
+  --dart-define=API_BASE_URL=http://localhost:8000 --dart-define=AUDIT_LOCALE=en   # or sw
+```
+
+Add `--dart-define=MANUAL_PROVIDER=true` to perform the cleaner steps yourself in the provider web portal.
 
 The app covers sign-in and registration, service selection, property details, location, date and live time slots, a server-calculated price, cash payment, booking status tracking, the assigned cleaner, completion confirmation, rating, booking history, and an EN/SW switch. Providers and admins use the web portal; the mobile app rejects non-customer logins.
 
@@ -165,18 +185,46 @@ The seed is idempotent. Every record is looked up by a natural key (email, slug,
 
 ```bash
 # Backend: real PostgreSQL test database (safishacon_test), migrated with Alembic
-cd backend && pytest                 # 53 tests
+cd backend && pytest                 # 80 tests, incl. tests/test_concurrency.py (races & idempotency)
 ruff check app tests && ruff format --check app tests
 
 # Web
 cd web && npm run lint && npm run typecheck && npm test && npm run build
 
 # Flutter
-cd mobile && flutter analyze && flutter test
+cd mobile && flutter analyze && flutter test        # 48 tests incl. layouts at 320–430 px, font scale up to 2.0, EN/SW
 flutter test test/live_api_test.dart --dart-define=LIVE_API_URL=http://localhost:8000   # against a running API
 ```
 
-Backend tests cover registration, login, refresh-token rotation and reuse detection, RBAC on every admin endpoint, customer and provider data isolation, pricing and commission (including snapshot immutability), provider eligibility (verification, service, area, hours, capacity), assignment, rejection, reassignment, offer expiry, admin manual assignment, booking state-machine guards, cash payment, settlements, reviews (including duplicates), complaints and disputes, and admin catalogue and settings management.
+Backend tests cover concurrency and idempotency:
+
+- simultaneous accepts;
+- accept versus offer expiry;
+- cancel versus accept;
+- double settlement;
+- duplicate booking submissions with an `Idempotency-Key`;
+- double-tapped accept;
+- duplicate cash confirmations and gateway callbacks.
+
+They also cover health and metrics, the notification outbox retry and backoff, and production config guards.
+
+Functional coverage includes registration, login, refresh-token rotation and reuse detection, RBAC on every admin endpoint, customer and provider data isolation, pricing and commission (including snapshot immutability), provider eligibility (verification, service, area, hours, capacity), assignment, rejection, reassignment, offer expiry, admin manual assignment, booking state-machine guards, cash payment, settlements, reviews (including duplicates), complaints and disputes, and admin catalogue and settings management.
+
+---
+
+### Load and performance testing
+
+The load-test tooling lives in `backend/loadtest/` and `backend/scripts/`. Run it only against a dedicated `*_load` database, never a real environment:
+
+```bash
+cd backend
+python -m scripts.generate_load_data        # 150k bookings, 30k customers, 300 providers
+python -m scripts.explain_hot_queries       # EXPLAIN ANALYZE of the hot queries
+python scripts/count_endpoint_queries.py    # SQL statements per endpoint
+locust -f loadtest/locustfile.py --host http://localhost:8001 --headless -u 60 -r 6 -t 3m
+```
+
+Measured results and the exact environment are in [docs/PERFORMANCE_BASELINE.md](docs/PERFORMANCE_BASELINE.md).
 
 ---
 
@@ -188,11 +236,13 @@ All variables are documented in [`.env.example`](.env.example). The main groups:
 |---|---|
 | Brand | `APP_NAME`, `APP_TAGLINE`, `SUPPORT_EMAIL`, `SUPPORT_PHONE`, `SUPPORT_WHATSAPP`, `OFFICE_ADDRESS` |
 | Locale and money | `DEFAULT_CURRENCY` (TZS), `DEFAULT_LOCALE` (en/sw), `TIMEZONE`, `DEFAULT_COMMISSION_PERCENT` |
-| Database | `DATABASE_URL`, `POSTGRES_DB/USER/PASSWORD/PORT` |
-| Security | `JWT_SECRET`, `ACCESS_TOKEN_MINUTES`, `REFRESH_TOKEN_DAYS`, `CORS_ORIGINS`, `CORS_ORIGIN_REGEX`, `AUTH_RATE_LIMIT_PER_MINUTE` |
-| Operations | `ASSIGNMENT_OFFER_TTL_MINUTES`, `MIN_BOOKING_LEAD_HOURS`, `MAX_BOOKING_DAYS_AHEAD`, `BOOKING_SLOT_START_HOUR/END_HOUR`, `BACKGROUND_JOBS_ENABLED` |
+| Database | `DATABASE_URL`, `POSTGRES_DB/USER/PASSWORD/PORT`, `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT_SECONDS`, `DB_STATEMENT_TIMEOUT_MS`, `DB_LOCK_TIMEOUT_MS` … |
+| Security | `JWT_SECRET`, `ACCESS_TOKEN_MINUTES`, `REFRESH_TOKEN_DAYS`, `CORS_ORIGINS`, `CORS_ORIGIN_REGEX`, `AUTH_RATE_LIMIT_PER_MINUTE`, `WRITE_RATE_LIMIT_PER_MINUTE`, `FORWARDED_ALLOW_IPS` |
+| Server | `WEB_CONCURRENCY` (processes per API container, one per vCPU), `GRACEFUL_SHUTDOWN_SECONDS`, `KEEP_ALIVE_SECONDS` |
+| Observability | `METRICS_ENABLED`, `METRICS_TOKEN`, `SLOW_REQUEST_MS`, `LOG_LEVEL`, `LOG_JSON` |
+| Operations | `ASSIGNMENT_OFFER_TTL_MINUTES`, `MIN_BOOKING_LEAD_HOURS`, `MAX_BOOKING_DAYS_AHEAD`, `BOOKING_SLOT_START_HOUR/END_HOUR`, `BACKGROUND_JOBS_ENABLED`, `WORKER_INTERVAL_SECONDS` |
 | Payments | `DIGITAL_PAYMENTS_ENABLED`, `MOBILE_MONEY_PROVIDER`, `MOBILE_MONEY_API_KEY` |
-| Notifications | `SMS_PROVIDER`, `SMS_API_KEY` |
+| Notifications | `SMS_PROVIDER`, `SMS_API_KEY`, `NOTIFICATION_MAX_ATTEMPTS`, `EXTERNAL_CONNECT_TIMEOUT_SECONDS`, `EXTERNAL_READ_TIMEOUT_SECONDS` |
 | Demo | `DEMO_MODE`, `SEED_DEMO_PASSWORD`, `RUN_SEED` |
 | Web / mobile | `VITE_API_BASE_URL`, `VITE_APP_NAME`; Flutter: `--dart-define=API_BASE_URL=…`, `APP_NAME=…` |
 
@@ -264,7 +314,8 @@ Extension points already exist:
 
 ## Known limitations
 
-- The auth rate limiter and the offer-expiry job run in-process. Fine for a single API instance; with several replicas, move rate limiting to Redis or the gateway and run expiry as a dedicated worker. Expiry already uses `SKIP LOCKED`, so concurrent runs are safe.
+- The application rate limiter is per process. nginx adds a shared edge limit on credential endpoints. Move the limiter to Redis when several API containers serve production traffic ([ADR-002](docs/architecture/ADR-002-redis.md)).
+- Admin free-text search uses `ILIKE` with sequential scans (about 220 ms at 150k bookings). Trigram indexes are the documented next step.
 - The web app keeps the refresh token in `localStorage`; httpOnly cookies are the production hardening step. Mobile uses secure storage.
 - Customers can't reschedule (cancel and rebook instead). There's no automatic completion confirmation after N hours (admins can confirm on the customer's behalf).
 - Profile image upload isn't implemented, so there's no file storage to secure.
@@ -273,8 +324,16 @@ Extension points already exist:
 
 ## Production deployment notes
 
-- Set `ENVIRONMENT=production`, `DEMO_MODE=false`, a strong random `JWT_SECRET`, explicit `CORS_ORIGINS`, and an empty `CORS_ORIGIN_REGEX`. The API refuses to boot with unsafe values.
-- Use a managed PostgreSQL with backups, run `alembic upgrade head` as a release step, and seed with `--reference-only`.
+See [docs/PRODUCTION_ARCHITECTURE.md](docs/PRODUCTION_ARCHITECTURE.md) for the recommended pilot topology, sizing and scaling triggers, and [docs/BACKUP_AND_RECOVERY.md](docs/BACKUP_AND_RECOVERY.md) for backups and restore drills.
+
+- Set the following. The API refuses to boot with unsafe values.
+  - `ENVIRONMENT=production` and `DEMO_MODE=false`;
+  - a strong random `JWT_SECRET`;
+  - explicit `CORS_ORIGINS` and an empty `CORS_ORIGIN_REGEX`;
+  - `FORWARDED_ALLOW_IPS` set to your proxy's address.
+- Expose only nginx. Don't publish the API port, and protect `/metrics` with `METRICS_TOKEN` if it is reachable.
+- Run the `worker` service, exactly one or more; it is safe to run several.
+- Use a managed PostgreSQL with point-in-time recovery, and seed with `--reference-only`. Migrations run on API start under an advisory lock; at larger scale, run `alembic upgrade head` as a release step.
 - Put the API and web behind HTTPS (TLS termination at the load balancer). The API image runs as a non-root user and sends security headers.
 - Rotate demo credentials out entirely; create the first admin through a one-off script or the seed with production-safe values.
-- Ship JSON logs to your log platform, and alert on `unhandled_error`, `assignment.no_candidate` and `auth.refresh_reuse_detected`.
+- Ship JSON logs to your log platform; every line carries `request_id`. Scrape `/metrics`; recommended alerts are in [ADR-006](docs/architecture/ADR-006-observability.md). Also alert on `unhandled_error`, `assignment.no_candidate` and `auth.refresh_reuse_detected`.

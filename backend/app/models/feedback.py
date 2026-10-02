@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, SmallInteger, String, Text, Uuid
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, SmallInteger, String, Text, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, Timestamped, UUIDPk
@@ -13,7 +13,11 @@ from app.models.user import Customer, User
 
 class Review(UUIDPk, Timestamped, Base):
     __tablename__ = "reviews"
-    __table_args__ = (CheckConstraint("rating BETWEEN 1 AND 5", name="rating_range"),)
+    __table_args__ = (
+        CheckConstraint("rating BETWEEN 1 AND 5", name="rating_range"),
+        # Landing-page testimonials: newest visible reviews.
+        Index("ix_reviews_visible_recent", "created_at", postgresql_where=text("is_hidden = false")),
+    )
 
     booking_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("bookings.id", ondelete="CASCADE"), unique=True, nullable=False

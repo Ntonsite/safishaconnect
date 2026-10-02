@@ -13,6 +13,8 @@ os.environ["BCRYPT_ROUNDS"] = "4"
 os.environ["LOG_JSON"] = "false"
 os.environ["LOG_LEVEL"] = "WARNING"
 os.environ["AUTH_RATE_LIMIT_PER_MINUTE"] = "1000"
+os.environ["WRITE_RATE_LIMIT_PER_MINUTE"] = "1000"
+os.environ["METRICS_ENABLED"] = "true"
 os.environ["DIGITAL_PAYMENTS_ENABLED"] = "false"
 
 import pytest  # noqa: E402

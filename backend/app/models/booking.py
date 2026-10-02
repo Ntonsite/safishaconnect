@@ -14,7 +14,9 @@ from sqlalchemy import (
     String,
     Text,
     Time,
+    UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -33,12 +35,18 @@ class Booking(UUIDPk, Timestamped, Base):
         CheckConstraint("total_amount >= 0", name="total_non_negative"),
         CheckConstraint("commission_amount + provider_earning = total_amount", name="economics_balance"),
         CheckConstraint("bedrooms >= 0 AND bathrooms >= 0", name="rooms_non_negative"),
+        # Provider schedule/capacity checks and provider job lists.
         Index("ix_bookings_provider_schedule", "provider_id", "scheduled_date"),
+        # Admin queues ("finding provider", "disputed"...) ordered by date.
+        Index("ix_bookings_status_schedule", "status", "scheduled_date"),
+        # A retried "create booking" request returns the original booking. Its customer_id prefix
+        # also serves customer booking history (measured: a separate (customer_id, date) index
+        # was never chosen — customers have few bookings each — so it is not created).
+        UniqueConstraint("customer_id", "idempotency_key", name="uq_bookings_customer_idempotency_key"),
     )
-
     reference: Mapped[str] = mapped_column(String(16), unique=True, nullable=False)
     customer_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("customers.id", ondelete="RESTRICT"), index=True, nullable=False
+        Uuid, ForeignKey("customers.id", ondelete="RESTRICT"), nullable=False
     )
     service_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("services.id", ondelete="RESTRICT"), index=True, nullable=False
@@ -46,12 +54,17 @@ class Booking(UUIDPk, Timestamped, Base):
     area_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("service_areas.id", ondelete="RESTRICT"), index=True, nullable=False
     )
-    provider_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("providers.id", ondelete="RESTRICT"), index=True
-    )
+    provider_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("providers.id", ondelete="RESTRICT"))
     status: Mapped[BookingStatus] = mapped_column(
-        db_enum(BookingStatus, "booking_status"), default=BookingStatus.PENDING_CONFIRMATION, index=True
+        db_enum(BookingStatus, "booking_status"), default=BookingStatus.PENDING_CONFIRMATION
     )
+    # Optimistic concurrency: every UPDATE checks the version it read, so a write based on
+    # stale data fails loudly (409) instead of silently overwriting a concurrent change.
+    version_id: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1"))
+    __mapper_args__ = {"version_id_col": version_id}  # noqa: RUF012
+    # Client-supplied Idempotency-Key and a fingerprint of the request it was first used with.
+    idempotency_key: Mapped[str | None] = mapped_column(String(64))
+    idempotency_fingerprint: Mapped[str | None] = mapped_column(String(64))
 
     # Location & property details
     address_line: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -105,8 +118,13 @@ class Booking(UUIDPk, Timestamped, Base):
     assignments: Mapped[list["ProviderAssignment"]] = relationship(
         back_populates="booking", cascade="all, delete-orphan", order_by="ProviderAssignment.offered_at"
     )
-    payment: Mapped["Payment | None"] = relationship(back_populates="booking", uselist=False)  # noqa: F821
-    review: Mapped["Review | None"] = relationship(back_populates="booking", uselist=False)  # noqa: F821
+    # Always rendered (list summaries, allowed actions): batch-load instead of one query per row.
+    payment: Mapped["Payment | None"] = relationship(  # noqa: F821
+        back_populates="booking", uselist=False, lazy="selectin"
+    )
+    review: Mapped["Review | None"] = relationship(  # noqa: F821
+        back_populates="booking", uselist=False, lazy="selectin"
+    )
 
 
 class BookingPriceItem(UUIDPk, Base):
@@ -143,7 +161,19 @@ class ProviderAssignment(UUIDPk, Timestamped, Base):
     """A job offer to a provider. At most one OFFERED/ACCEPTED assignment per booking at a time."""
 
     __tablename__ = "provider_assignments"
-    __table_args__ = (Index("ix_assignments_provider_status", "provider_id", "status"),)
+    __table_args__ = (
+        Index("ix_assignments_provider_status", "provider_id", "status"),
+        # Database-enforced invariant: a booking has at most ONE open (offered or accepted)
+        # assignment, whatever the application code does.
+        Index(
+            "uq_assignments_one_open_per_booking",
+            "booking_id",
+            unique=True,
+            postgresql_where=text("status IN ('OFFERED', 'ACCEPTED')"),
+        ),
+        # The expiry job's scan touches only live offers.
+        Index("ix_assignments_open_offer_expiry", "expires_at", postgresql_where=text("status = 'OFFERED'")),
+    )
 
     booking_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("bookings.id", ondelete="CASCADE"), index=True)
     provider_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("providers.id", ondelete="CASCADE"))
@@ -153,7 +183,7 @@ class ProviderAssignment(UUIDPk, Timestamped, Base):
     is_manual: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     assigned_by_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id", ondelete="SET NULL"))
     offered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     response_note: Mapped[str | None] = mapped_column(String(255))
 

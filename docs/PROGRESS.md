@@ -95,3 +95,99 @@ Backend 53 ✓ · Web lint, type-check, 18 tests and build ✓ · Flutter analyz
 - The public entry bundle (478 KB, 145 KB gzipped) is mostly framework and library code. Splitting it further would need vendor chunking.
 - There's no photography yet. The brand relies on typography, icons and real data until a professional shoot is available; stock imagery was deliberately avoided.
 - Flutter web needs internet access for the CanvasKit renderer (or a build with `--no-web-resources-cdn`). Android and iOS builds are unaffected.
+
+## Backend hardening: performance, concurrency, resilience (2026-10-02)
+
+I audited the backend against a realistic dataset (150k bookings, 30k customers, 300 providers), then fixed what the evidence showed. The full write-up:
+
+- [ARCHITECTURE_ASSESSMENT.md](ARCHITECTURE_ASSESSMENT.md): findings by severity.
+- [PERFORMANCE_BASELINE.md](PERFORMANCE_BASELINE.md): measured before and after.
+- [PRODUCTION_ARCHITECTURE.md](PRODUCTION_ARCHITECTURE.md): pilot and growth topology.
+- [BACKUP_AND_RECOVERY.md](BACKUP_AND_RECOVERY.md).
+- Decision records in [architecture/](architecture/).
+
+**Concurrency and correctness**
+
+- 9 new race and idempotency tests failed 9/9 on the old code and now pass 9/9. The fixes:
+  - booking and provider row locks with a fixed lock order;
+  - optimistic `version_id` columns;
+  - a database-enforced "one open assignment per booking";
+  - idempotent booking creation (`Idempotency-Key`, now honoured; Flutter already sent it and the web app now does too);
+  - idempotent accept and cash confirmation;
+  - settlement payout locking;
+  - an idempotent payment-gateway callback ledger.
+- Fixed a functional bug: a cleaner holding two overlapping offers could accept neither.
+
+**Performance**
+
+- At 60 concurrent users, one 2-vCPU container went from p50 1,100 ms / p99 10 s to p50 48 ms / p99 860 ms.
+- Cleaner endpoints dropped from 13–85 s to under 0.4 s at p50.
+- Per-request SQL fell sharply, e.g. completed jobs from 2,883 statements to 9, and availability from 54 to 6.
+- Query-driven indexes, e.g. the expiry scan from 47 ms to 0.04 ms.
+
+**Resilience and operations**
+
+- A dedicated `worker` service (offer expiry plus a notification outbox with retries and backoff).
+- `/health/live` and `/health/ready`, and Prometheus `/metrics`.
+- Request IDs on every log line, slow-request logging, and per-request query counts.
+- Database statement, lock and pool timeouts, with 503/409 responses instead of hangs.
+- Graceful shutdown.
+- Trusted-proxy handling: the client IP can no longer be spoofed, and the audit log now records IPs.
+- A multi-stage non-root image, and edge rate limiting on credential endpoints.
+
+**Decisions**
+
+- PostgreSQL row locking and the worker: **adopted**.
+- Redis, HAProxy and Kafka: **deferred**, each with explicit triggers.
+- In-process domain events after commit: **adopted** as the future integration seam.
+
+**Verification**
+
+Backend 80 tests ✓ (53 → 80) · web type-check and 18 tests ✓ · Flutter 46 tests ✓ · full UI journey on the Docker stack ✓ with no browser errors · live drills: database outage, graceful restarts and proxy-header spoofing ✓.
+
+## Flutter customer app: premium UI/UX audit, finalized (2026-10-02)
+
+I finished the in-progress mobile redesign and verified it **on a physical Android phone** (Z2359, Android 13). I ran the complete customer journey there through the real API in English and in Kiswahili, with screenshots in [screenshots/mobile/](screenshots/mobile/).
+
+**What the redesign delivers**
+
+- **Design system** (`lib/ui/theme.dart`): a bundled DM Sans typeface (no font CDN), the light SafishaCon palette, a spacing scale and one button hierarchy. The navigation, chip and input themes are restrained, with no dark theme.
+- **Navigation:** three tabs (Home, Bookings, Profile), and the primary action is always *Book a cleaning*.
+- **Home** is built around intent: "What would you like cleaned?", your next cleaning with *Track booking*, services with starting prices and a detail sheet, how it works, and "equipment included".
+- **Booking flow:** 5 steps with a compact `2/5` progress bar:
+  1. service;
+  2. property (type chips and steppers);
+  3. location (supported areas, optional notes);
+  4. schedule (day strip plus live slots, unavailable ones greyed out);
+  5. review and pay, with edit links, the server-calculated price, cash "pay after cleaning" (digital methods stay hidden until a real gateway exists).
+
+  A sticky total sits above the button. The final button says *Confirm booking* and can't double-submit: an `Idempotency-Key` keeps retries safe.
+- **Success screen** with reference, schedule, area and total, plus *Track booking* and *Back to home*.
+- **Booking tracking:**
+  - human status headlines for every stage ("Finding your cleaning professional", "Your cleaner is on the way"…);
+  - the cleaner (initials, verified, rating);
+  - a step timeline;
+  - completion with *Confirm completion* and *Report an issue*;
+  - review;
+  - cash status;
+  - support and cancel.
+- **Profile:** details, EN/SW switch (persisted, without losing state), support, and sign out with confirmation.
+- **Errors, empty and loading states:** friendly messages for network failures, timeouts and expired sessions, with retry; booking input is preserved on failure.
+
+**Fixed during finalization**
+
+- **Refreshes could be silently dropped.** A refresh requested while another was in flight (15 s poll, app resume, pull-to-refresh) was ignored. After submitting a review the screen could keep showing the stale form; on the phone this caused a failed run. A new `RefreshGate` queues one follow-up refresh instead, on the booking, Home and Bookings screens, with a unit test.
+- **Sticky total alignment:** it floated mid-row and, when first fixed, overflowed at 320 px with 2.0× font. It is now right-aligned and wraps safely, verified by the layout tests.
+- **Screen order and visibility:** the assigned cleaner now comes before the timeline, and the timeline starts open while a booking is live.
+- **Copy:** the completion question was shown twice; the success screen no longer refers to "progress below" that doesn't exist, and has no redundant title.
+- **Phone numbers** are formatted as `+255 713 000 002`.
+- **The journey test** used Flutter's English-only `pageBack()`, so the Kiswahili run always failed at its last step. Fixed.
+
+**Verification:** `flutter analyze` clean · 48 tests ✓ · device journey EN ✓ (SC-TKM3GW) and SW ✓ (SC-UVNRU3) · release APK built and installed on the phone.
+
+**Remaining limitations:**
+
+- Digital payments are hidden until a gateway is integrated.
+- There is no live GPS or chat; the UI claims neither.
+- There is no in-app call action yet (the number can be copied).
+- iOS hasn't been run on a device.

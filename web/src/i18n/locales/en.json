@@ -854,6 +854,11 @@
     "INVALID_VERIFICATION_ACTION": "That verification action isn't possible right now.",
     "CANNOT_WITHDRAW": "You can only release a job before you set off.",
     "RESOLUTION_REQUIRED": "Please describe the resolution.",
+    "IDEMPOTENCY_KEY_REUSED": "This booking was changed while sending. Please submit it again.",
+    "CONCURRENT_UPDATE": "Someone else just updated this. Please refresh and try again.",
+    "SERVICE_BUSY": "We're very busy right now. Please try again in a moment.",
+    "SERVICE_UNAVAILABLE": "The service is temporarily unavailable. Please try again shortly.",
+    "CONFLICT": "This change conflicts with the latest update. Please refresh.",
     "INTERNAL_ERROR": "Something went wrong on our side. Please try again."
   }
 }

@@ -1,9 +1,19 @@
 name: safishacon
 
+# Pilot topology (docs/PRODUCTION_ARCHITECTURE.md):
+#   web (nginx: static app + /api reverse proxy) -> api (FastAPI) -> db (PostgreSQL)
+#                                                  worker (offer expiry, notification outbox) -> db
+# Deliberately no Redis, Kafka or HAProxy yet — see docs/architecture/ADR-00*.md.
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-safisha}:${POSTGRES_PASSWORD:-safisha}@db:5432/${POSTGRES_DB:-safishacon}
+
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    # pg_stat_statements: per-query latency/call statistics for slow-query investigation.
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements", "-c", "pg_stat_statements.track=top"]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-safishacon}
       POSTGRES_USER: ${POSTGRES_USER:-safisha}
@@ -18,29 +28,67 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    networks: [backend]
 
   api:
     build:
       context: ./backend
     restart: unless-stopped
+    command: ["serve"]
     env_file:
       - path: .env
         required: false
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-safisha}:${POSTGRES_PASSWORD:-safisha}@db:5432/${POSTGRES_DB:-safishacon}
+      <<: *backend-env
       RUN_MIGRATIONS: "true"
       RUN_SEED: ${RUN_SEED:-true}
+      # Jobs run in the dedicated worker below, not in API processes.
+      BACKGROUND_JOBS_ENABLED: "false"
+      # 2 processes x (5 + 5) pooled connections = at most 20 PostgreSQL connections.
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+      # Only nginx may set X-Forwarded-For; direct callers cannot spoof their IP.
+      FORWARDED_ALLOW_IPS: 172.28.0.10
     ports:
+      # Published for local development/debugging only. In production expose only `web`.
       - "${API_PORT:-8000}:8000"
     depends_on:
       db:
         condition: service_healthy
+    stop_grace_period: 30s
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status == 200 else 1)"]
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=4).status == 200 else 1)"]
       interval: 10s
       timeout: 5s
       retries: 12
-      start_period: 20s
+      start_period: 30s
+    networks: [backend]
+
+  worker:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    command: ["python", "-m", "app.worker"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      <<: *backend-env
+      RUN_MIGRATIONS: "false"
+      RUN_SEED: "false"
+      DB_POOL_SIZE: "2"
+      DB_MAX_OVERFLOW: "0"
+    depends_on:
+      api:
+        condition: service_healthy  # the api container has applied migrations
+    stop_grace_period: 30s
+    healthcheck:
+      # Healthy while the job loop keeps completing passes (heartbeat younger than 2 minutes).
+      test: ["CMD", "python", "-c", "import time,sys; sys.exit(0 if time.time() - int(open('/tmp/safisha-worker.heartbeat').read()) < 120 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    networks: [backend]
 
   web:
     build:
@@ -59,6 +107,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 6
+    networks:
+      backend:
+        ipv4_address: 172.28.0.10
+
+networks:
+  backend:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
 
 volumes:
   pgdata:

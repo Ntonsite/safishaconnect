@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -49,9 +50,26 @@ SPECS: dict[str, SettingSpec] = {
 }
 
 
+_CACHE_KEY = "safisha_platform_settings"
+
+
+def _values(db: Session) -> dict[str, str]:
+    """All settings, read once per session (= once per request or job pass).
+
+    Each request still sees the latest committed values — there is no cross-request
+    cache that could serve a stale commission rate — but a request that checks the
+    schedule eleven times reads the table once, not eleven times.
+    """
+    cached = db.info.get(_CACHE_KEY)
+    if cached is None:
+        cached = {row.key: row.value for row in db.scalars(select(PlatformSetting))}
+        db.info[_CACHE_KEY] = cached
+    return cached
+
+
 def _raw(db: Session, key: str) -> str:
-    row = db.get(PlatformSetting, key)
-    return row.value if row else SPECS[key].default()
+    value = _values(db).get(key)
+    return value if value is not None else SPECS[key].default()
 
 
 def commission_percent(db: Session) -> Decimal:
@@ -94,4 +112,5 @@ def update_setting(db: Session, key: str, value: str, actor_id) -> tuple[str, st
         db.add(row)
     row.value = normalised
     row.updated_by_id = actor_id
+    db.info.pop(_CACHE_KEY, None)
     return old, normalised

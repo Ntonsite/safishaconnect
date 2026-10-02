@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { Banknote, CalendarDays, Clock, CreditCard, MapPin, ShieldCheck, Smartphone } from "lucide-react";
 import clsx from "clsx";
 import { customerApi, publicApi } from "../../api/endpoints";
+import { newIdempotencyKey } from "../../api/client";
 import type { PaymentMethod, QuoteRequest, Service } from "../../api/types";
 import { useAuth } from "../../auth/AuthContext";
 import { useConfig } from "../../config/brand";
@@ -113,9 +114,12 @@ export function NewBookingPage() {
     if (!slot?.available) setStartTime(null);
   }, [availability.data, startTime]);
 
+  // One idempotency key per distinct booking request: retrying the same submission (double tap,
+  // timeout on a slow network) reuses it and gets the original booking back instead of a duplicate.
+  const idempotency = useRef<{ payload: string; key: string } | null>(null);
   const create = useMutation({
-    mutationFn: () =>
-      customerApi.createBooking({
+    mutationFn: () => {
+      const body = {
         ...quoteRequest!,
         area_id: areaId,
         address_line: address.trim(),
@@ -124,7 +128,11 @@ export function NewBookingPage() {
         scheduled_date: date,
         scheduled_start_time: startTime!,
         payment_method: payment,
-      }),
+      };
+      const payload = JSON.stringify(body);
+      if (idempotency.current?.payload !== payload) idempotency.current = { payload, key: newIdempotencyKey() };
+      return customerApi.createBooking(body, idempotency.current.key);
+    },
     onSuccess: (booking) => navigate(`/app/bookings/${booking.id}?new=1`, { replace: true }),
     onError: (e) => toast.error(e),
   });

@@ -854,6 +854,11 @@
     "INVALID_VERIFICATION_ACTION": "Kitendo hicho cha uthibitisho hakiwezekani kwa sasa.",
     "CANNOT_WITHDRAW": "Unaweza kuachia kazi kabla tu hujaanza safari.",
     "RESOLUTION_REQUIRED": "Tafadhali eleza jinsi lilivyotatuliwa.",
+    "IDEMPOTENCY_KEY_REUSED": "Oda hii ilibadilika wakati wa kutuma. Tafadhali iwasilishe tena.",
+    "CONCURRENT_UPDATE": "Mtu mwingine ameisasisha sasa hivi. Tafadhali onyesha upya kisha ujaribu tena.",
+    "SERVICE_BUSY": "Tuna shughuli nyingi kwa sasa. Tafadhali jaribu tena baada ya muda mfupi.",
+    "SERVICE_UNAVAILABLE": "Huduma haipatikani kwa muda. Tafadhali jaribu tena baadaye kidogo.",
+    "CONFLICT": "Mabadiliko haya yanagongana na taarifa mpya. Tafadhali onyesha upya.",
     "INTERNAL_ERROR": "Hitilafu imetokea upande wetu. Tafadhali jaribu tena."
   }
 }

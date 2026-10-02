@@ -109,11 +109,15 @@ interface RequestOptions {
   body?: unknown;
   query?: Query;
   auth?: boolean;
+  headers?: Record<string, string>;
 }
 
-export async function api<T>(path: string, { method = "GET", body, query, auth = true }: RequestOptions = {}): Promise<T> {
+export async function api<T>(
+  path: string,
+  { method = "GET", body, query, auth = true, headers: extraHeaders }: RequestOptions = {},
+): Promise<T> {
   const send = () => {
-    const headers: Record<string, string> = { Accept: "application/json" };
+    const headers: Record<string, string> = { Accept: "application/json", ...extraHeaders };
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (auth && accessToken) headers.Authorization = `Bearer ${accessToken}`;
     return fetch(buildUrl(path, query), {
@@ -145,4 +149,10 @@ export async function api<T>(path: string, { method = "GET", body, query, auth =
     throw new ApiError(res.status, err?.code ?? "HTTP_ERROR", err?.message ?? res.statusText, err?.details);
   }
   return data as T;
+}
+
+/** Random key for the Idempotency-Key header (crypto.randomUUID needs a secure context). */
+export function newIdempotencyKey(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
 }

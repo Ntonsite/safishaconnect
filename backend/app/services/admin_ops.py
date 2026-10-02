@@ -68,16 +68,22 @@ def _count(db: Session, stmt) -> int:
 
 def stats(db: Session) -> StatsOut:
     completed = (S.COMPLETED_BY_PROVIDER, S.CUSTOMER_CONFIRMED, S.CLOSED)
-    by_status = dict(db.execute(select(Booking.status, func.count(Booking.id)).group_by(Booking.status)).all())
+    # One pass over bookings yields counts, GBV and commission per status (was four full scans).
+    per_status = db.execute(
+        select(
+            Booking.status,
+            func.count(Booking.id),
+            func.coalesce(func.sum(Booking.total_amount), 0),
+            func.coalesce(func.sum(Booking.commission_amount), 0),
+        ).group_by(Booking.status)
+    ).all()
+    by_status = {status: count for status, count, _, _ in per_status}
     # GBV counts every booking not cancelled; commission is only recognised once a booking is closed.
-    gross = db.scalar(
-        select(func.coalesce(func.sum(Booking.total_amount), 0)).where(
-            Booking.status.not_in((S.CANCELLED, S.PENDING_CONFIRMATION))
-        )
+    gross = sum(
+        (total for status, _, total, _ in per_status if status not in (S.CANCELLED, S.PENDING_CONFIRMATION)),
+        Decimal(0),
     )
-    commission = db.scalar(
-        select(func.coalesce(func.sum(Booking.commission_amount), 0)).where(Booking.status == S.CLOSED)
-    )
+    commission = sum((c for status, _, _, c in per_status if status == S.CLOSED), Decimal(0))
     return StatsOut(
         currency=get_settings().default_currency,
         total_customers=_count(db, select(func.count(Customer.id))),

@@ -78,6 +78,19 @@ def _option_ref(opt) -> OptionRef | None:
     return OptionRef(id=opt.id, code=opt.code, name_en=opt.name_en, name_sw=opt.name_sw) if opt else None
 
 
+def bookings_with_open_complaints(db: Session, booking_ids: list) -> set:
+    """One query for a whole list of bookings (avoids a per-row lookup in job lists)."""
+    if not booking_ids:
+        return set()
+    return set(
+        db.scalars(
+            select(Complaint.booking_id).where(
+                Complaint.booking_id.in_(booking_ids), Complaint.status.in_(OPEN_COMPLAINT)
+            )
+        )
+    )
+
+
 def _has_open_complaint(db: Session, b: Booking) -> bool:
     return bool(
         db.scalar(
@@ -139,11 +152,13 @@ def detail(
     *,
     provider_id=None,
     assignment: ProviderAssignment | None = None,
+    open_complaint: bool | None = None,
 ) -> BookingDetail:
     is_admin = viewer_role == RoleCode.ADMIN
     is_customer = viewer_role == RoleCode.CUSTOMER
     is_assigned_provider = viewer_role == RoleCode.PROVIDER and b.provider_id == provider_id
-    open_complaint = _has_open_complaint(db, b)
+    if open_complaint is None:
+        open_complaint = _has_open_complaint(db, b)
 
     # Location and customer contact are only revealed once a provider has accepted the job.
     reveal_customer = is_admin or (is_assigned_provider and b.status not in TERMINAL_STATUSES)

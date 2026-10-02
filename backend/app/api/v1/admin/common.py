@@ -1,6 +1,6 @@
 from typing import Annotated, Any
 
-from fastapi import Depends, Query, Request
+from fastapi import Depends, Query
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
@@ -26,7 +26,3 @@ def paginate(db: Session, stmt: Select, paging: Paging) -> tuple[list[Any], int]
     total = db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
     rows = db.scalars(stmt.offset((paging.page - 1) * paging.page_size).limit(paging.page_size)).unique().all()
     return list(rows), total
-
-
-def client_ip(request: Request) -> str | None:
-    return request.client.host if request.client else None

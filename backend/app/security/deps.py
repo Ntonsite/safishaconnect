@@ -9,6 +9,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import context
 from app.core.errors import AuthenticationError, NotFoundError, PermissionDeniedError
 from app.db.session import get_db
 from app.models import Customer, Provider, User
@@ -34,6 +35,7 @@ def get_current_user(
     user = db.get(User, user_id)
     if user is None or not user.is_active:
         raise AuthenticationError("This account is not active.", code="ACCOUNT_INACTIVE")
+    context.set_user(user.id)
     return user
 
 

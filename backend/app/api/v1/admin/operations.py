@@ -6,6 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query
 from sqlalchemy import or_, select
+from sqlalchemy.orm import selectinload
 
 from app.api.v1.admin.common import PagingDep, admin_only, paginate
 from app.core.errors import NotFoundError
@@ -107,7 +108,7 @@ def assign(booking_id: uuid.UUID, data: ManualAssignIn, db: DbSession, admin: Ad
 
 @router.post("/bookings/{booking_id}/status", response_model=BookingDetail, tags=["admin: bookings"])
 def set_status(booking_id: uuid.UUID, data: AdminStatusIn, db: DbSession, admin: AdminUser) -> BookingDetail:
-    booking = booking_service.get_booking(db, booking_id)
+    booking = booking_service.get_booking(db, booking_id, for_update=True)
     admin_ops.admin_set_status(db, admin, booking, data.status, data.note)
     db.commit()
     db.refresh(booking)
@@ -116,7 +117,7 @@ def set_status(booking_id: uuid.UUID, data: AdminStatusIn, db: DbSession, admin:
 
 @router.post("/bookings/{booking_id}/payment", response_model=BookingDetail, tags=["admin: payments"])
 def update_payment(booking_id: uuid.UUID, data: PaymentStatusUpdate, db: DbSession, admin: AdminUser) -> BookingDetail:
-    booking = booking_service.get_booking(db, booking_id)
+    booking = booking_service.get_booking(db, booking_id, for_update=True)
     payments.admin_set_payment_status(db, admin, booking, data.status, data.note)
     db.commit()
     db.refresh(booking)
@@ -130,7 +131,8 @@ def list_payments(
     status: PaymentStatus | None = None,
     method: PaymentMethod | None = None,
 ) -> Page[PaymentRow]:
-    stmt = select(Payment).order_by(Payment.created_at.desc())
+    # Booking (with its joined customer/provider) loaded in one batch for the page, not per row.
+    stmt = select(Payment).options(selectinload(Payment.booking)).order_by(Payment.created_at.desc())
     if status:
         stmt = stmt.where(Payment.status == status)
     if method:

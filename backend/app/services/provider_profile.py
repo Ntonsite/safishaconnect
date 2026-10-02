@@ -152,7 +152,7 @@ def dashboard(db: Session, provider: Provider) -> ProviderDashboard:
             Booking.provider_id == provider.id, Booking.status.in_(ACTIVE_ASSIGNED_STATUSES)
         )
     )
-    earnings = earnings_for(db, provider)
+    earnings = earnings_totals(db, provider)
     missing = missing_setup(provider)
     return ProviderDashboard(
         verification_status=provider.verification_status,
@@ -170,22 +170,57 @@ def dashboard(db: Session, provider: Provider) -> ProviderDashboard:
     )
 
 
-def earnings_for(db: Session, provider: Provider) -> EarningsOut:
+EARNING_STATUSES = DONE_STATUSES + (BookingStatus.DISPUTED,)
+
+
+def earnings_totals(db: Session, provider: Provider) -> EarningsOut:
+    """Lifetime totals computed by PostgreSQL (two aggregate queries), without row detail."""
+    by_status = dict(
+        db.execute(
+            select(ProviderSettlement.status, func.coalesce(func.sum(ProviderSettlement.provider_earning), 0))
+            .where(ProviderSettlement.provider_id == provider.id)
+            .group_by(ProviderSettlement.status)
+        ).all()
+    )
+    awaiting = db.scalar(
+        select(func.coalesce(func.sum(Booking.provider_earning), 0)).where(
+            Booking.provider_id == provider.id,
+            Booking.status.in_(EARNING_STATUSES),
+            ~select(ProviderSettlement.id).where(ProviderSettlement.booking_id == Booking.id).exists(),
+        )
+    )
+    pending = Decimal(by_status.get(SettlementStatus.PENDING, 0))
+    settled = Decimal(by_status.get(SettlementStatus.SETTLED, 0))
+    return EarningsOut(
+        currency=get_settings().default_currency,
+        total_earned=pending + settled,
+        pending_settlement=pending,
+        settled=settled,
+        awaiting_completion=Decimal(awaiting),
+        rows=[],
+    )
+
+
+def earnings_for(db: Session, provider: Provider, limit: int = 100) -> EarningsOut:
+    """Totals over all time plus the ``limit`` most recent earning rows."""
+    out = earnings_totals(db, provider)
     bookings = (
         db.scalars(
             select(Booking)
-            .where(Booking.provider_id == provider.id, Booking.status.in_(DONE_STATUSES + (BookingStatus.DISPUTED,)))
+            .where(Booking.provider_id == provider.id, Booking.status.in_(EARNING_STATUSES))
             .order_by(Booking.scheduled_date.desc(), Booking.scheduled_start_time.desc())
+            .limit(limit)
         )
         .unique()
         .all()
     )
     settlements = {
         s.booking_id: s
-        for s in db.scalars(select(ProviderSettlement).where(ProviderSettlement.provider_id == provider.id)).unique()
+        for s in db.scalars(
+            select(ProviderSettlement).where(ProviderSettlement.booking_id.in_([b.id for b in bookings]))
+        ).unique()
     }
     rows: list[EarningRow] = []
-    total = pending = settled = awaiting = Decimal(0)
     for b in bookings:
         s = settlements.get(b.id)
         rows.append(
@@ -204,22 +239,8 @@ def earnings_for(db: Session, provider: Provider) -> EarningsOut:
                 settlement_reference=s.reference if s else None,
             )
         )
-        if s is None:
-            awaiting += b.provider_earning
-            continue
-        total += s.provider_earning
-        if s.status == SettlementStatus.SETTLED:
-            settled += s.provider_earning
-        else:
-            pending += s.provider_earning
-    return EarningsOut(
-        currency=get_settings().default_currency,
-        total_earned=total,
-        pending_settlement=pending,
-        settled=settled,
-        awaiting_completion=awaiting,
-        rows=rows,
-    )
+    out.rows = rows
+    return out
 
 
 VERIFICATION_RULES: dict[str, tuple[set[VerificationStatus], VerificationStatus, VerificationDecision, str]] = {

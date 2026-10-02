@@ -90,7 +90,9 @@ export const authApi = {
 };
 
 export const customerApi = {
-  createBooking: (body: BookingCreate) => post<BookingDetail>("/bookings", body),
+  /** ``idempotencyKey`` makes retries (double taps, flaky mobile data) return the same booking. */
+  createBooking: (body: BookingCreate, idempotencyKey: string) =>
+    api<BookingDetail>("/bookings", { method: "POST", body, headers: { "Idempotency-Key": idempotencyKey } }),
   bookings: (scope: "all" | "active" | "history" = "all") => api<BookingSummary[]>("/bookings", { query: { scope } }),
   booking: (id: string) => api<BookingDetail>(`/bookings/${id}`),
   confirm: (id: string) => post<BookingDetail>(`/bookings/${id}/confirm`),

@@ -3,9 +3,10 @@
 import uuid
 from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.core.errors import NotFoundError
 from app.models import Booking, ProviderAssignment, Review
@@ -83,8 +84,8 @@ def dashboard(provider: CurrentProvider, db: DbSession) -> ProviderDashboard:
 
 
 @router.get("/earnings", response_model=EarningsOut)
-def earnings(provider: CurrentProvider, db: DbSession) -> EarningsOut:
-    return provider_profile.earnings_for(db, provider)
+def earnings(provider: CurrentProvider, db: DbSession, limit: int = Query(default=100, ge=1, le=500)) -> EarningsOut:
+    return provider_profile.earnings_for(db, provider, limit)
 
 
 @router.get("/reviews", response_model=list[ReviewOut])
@@ -97,15 +98,23 @@ def my_reviews(provider: CurrentProvider, db: DbSession) -> list[ReviewOut]:
     return [feedback.review_out(r) for r in rows.unique()]
 
 
-def _job(db, provider, a: ProviderAssignment) -> JobOut:
+def _job(db, provider, a: ProviderAssignment, open_complaint: bool | None = None) -> JobOut:
     return JobOut(
         assignment_id=a.id,
         assignment_status=a.status,
         offered_at=a.offered_at,
         expires_at=a.expires_at,
         responded_at=a.responded_at,
-        booking=booking_views.detail(db, a.booking, RoleCode.PROVIDER, provider_id=provider.id, assignment=a),
+        booking=booking_views.detail(
+            db, a.booking, RoleCode.PROVIDER, provider_id=provider.id, assignment=a, open_complaint=open_complaint
+        ),
     )
+
+
+# Everything a job card renders, fetched in a fixed number of batched queries for the whole page.
+JOB_LOAD = selectinload(ProviderAssignment.booking).options(
+    selectinload(Booking.price_items), selectinload(Booking.status_history)
+)
 
 
 @router.get("/jobs", response_model=list[JobOut])
@@ -113,11 +122,13 @@ def my_jobs(
     provider: CurrentProvider,
     db: DbSession,
     scope: Literal["offers", "active", "completed"] = "active",
+    limit: int = Query(default=50, ge=1, le=200),
 ) -> list[JobOut]:
     stmt = (
         select(ProviderAssignment)
         .join(Booking, Booking.id == ProviderAssignment.booking_id)
         .where(ProviderAssignment.provider_id == provider.id)
+        .options(JOB_LOAD)
     )
     if scope == "offers":
         stmt = stmt.where(
@@ -133,7 +144,9 @@ def my_jobs(
         stmt = stmt.order_by(
             Booking.scheduled_date if scope == "active" else Booking.scheduled_date.desc(), Booking.scheduled_start_time
         )
-    return [_job(db, provider, a) for a in db.scalars(stmt).unique()]
+    rows = db.scalars(stmt.limit(limit)).unique().all()
+    complaints = booking_views.bookings_with_open_complaints(db, [a.booking_id for a in rows])
+    return [_job(db, provider, a, a.booking_id in complaints) for a in rows]
 
 
 def _accepted_assignment(db, provider, booking_id: uuid.UUID) -> ProviderAssignment:
@@ -166,7 +179,7 @@ class AdvanceIn(BaseModel):
 @router.post("/jobs/{booking_id}/advance", response_model=JobOut)
 def advance_job(booking_id: uuid.UUID, data: AdvanceIn, provider: CurrentProvider, db: DbSession) -> JobOut:
     a = _accepted_assignment(db, provider, booking_id)
-    booking = db.scalar(select(Booking).where(Booking.id == booking_id).with_for_update(of=Booking))
+    booking = booking_service.get_booking(db, booking_id, for_update=True)
     booking_service.provider_advance(db, provider, booking, data.expected_status)
     db.commit()
     return _job(db, provider, a)
@@ -175,7 +188,7 @@ def advance_job(booking_id: uuid.UUID, data: AdvanceIn, provider: CurrentProvide
 @router.post("/jobs/{booking_id}/withdraw", response_model=BookingDetail)
 def withdraw_job(booking_id: uuid.UUID, data: ReasonIn, provider: CurrentProvider, db: DbSession) -> BookingDetail:
     _accepted_assignment(db, provider, booking_id)
-    booking = booking_service.get_booking(db, booking_id)
+    booking = booking_service.get_booking(db, booking_id, for_update=True)
     assignment.withdraw(db, provider, booking, data.reason)
     db.commit()
     return booking_views.detail(db, booking, RoleCode.PROVIDER, provider_id=provider.id)

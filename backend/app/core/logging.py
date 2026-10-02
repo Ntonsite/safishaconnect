@@ -5,8 +5,20 @@ import logging
 import sys
 from datetime import UTC, datetime
 
+from app.core import context
+
 _RESERVED = set(logging.LogRecord("", 0, "", 0, "", None, None).__dict__) | {"message", "asctime", "taskName"}
-_REDACT = {"password", "token", "access_token", "refresh_token", "authorization", "password_hash"}
+_REDACT = {
+    "password",
+    "token",
+    "access_token",
+    "refresh_token",
+    "authorization",
+    "password_hash",
+    "jwt",
+    "api_key",
+    "secret",
+}
 
 
 class JsonFormatter(logging.Formatter):
@@ -17,6 +29,12 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "event": record.getMessage(),
         }
+        # Correlate every line written while serving a request (services, jobs, errors).
+        ctx = context.current()
+        if ctx is not None:
+            payload["request_id"] = ctx.request_id
+            if ctx.user_id:
+                payload["user_id"] = ctx.user_id
         for key, value in record.__dict__.items():
             if key in _RESERVED or key.startswith("_"):
                 continue

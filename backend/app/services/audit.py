@@ -3,6 +3,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.core import context
 from app.core.logging import get_logger
 from app.models import AuditLog, User
 
@@ -25,7 +26,8 @@ def record(
             entity_type=entity_type,
             entity_id=str(entity_id) if entity_id else None,
             details=details,
-            ip_address=ip_address,
+            # Defaults to the caller of the current request (already resolved through trusted proxies only).
+            ip_address=ip_address or context.client_ip(),
         )
     )
     log.info(

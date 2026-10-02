@@ -4,20 +4,30 @@ Payment gateways implement :class:`PaymentGateway`. Cash is fully supported.
 Digital methods are exposed as "coming soon" until a real gateway (e.g. M-Pesa,
 Tigo Pesa, Airtel Money, card acquirer) is implemented and configured — the
 platform never fakes a successful third-party payment.
+
+Idempotency: confirming an already-paid payment returns it unchanged, and gateway
+callbacks are recorded in an append-only ledger with a unique dedupe key, so network
+retries, double taps and duplicate callbacks all produce a single financial result.
+Callers hold the booking row lock (see :mod:`app.services.locks`).
 """
 
 from dataclasses import dataclass
-from typing import Protocol
+from decimal import Decimal
+from typing import Any, Protocol
 
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from app.core import events, metrics
 from app.core.config import get_settings
 from app.core.errors import PaymentStateError, ValidationFailedError
 from app.core.logging import get_logger
-from app.models import Booking, Payment, ProviderSettlement, User
+from app.models import Booking, Payment, PaymentGatewayEvent, ProviderSettlement, User
 from app.models.enums import BookingStatus, PaymentMethod, PaymentStatus, RoleCode, SettlementStatus
 from app.services import audit
 from app.services.lifecycle import Actor, transition
+from app.services.locks import lock_booking
 from app.services.notifications import notify
 from app.utils.clock import utcnow
 
@@ -108,15 +118,23 @@ CASH_CONFIRMABLE_BY_PROVIDER = {BookingStatus.COMPLETED_BY_PROVIDER, BookingStat
 CASH_CONFIRMABLE_BY_ADMIN = CASH_CONFIRMABLE_BY_PROVIDER | {BookingStatus.DISPUTED, BookingStatus.SERVICE_IN_PROGRESS}
 
 
+def _reject(code: str, message: str) -> PaymentStateError:
+    metrics.PAYMENT_FAILURES.labels(code).inc()
+    return PaymentStateError(message, code=code)
+
+
 def confirm_cash(db: Session, booking: Booking, user: User, note: str | None = None) -> Payment:
     payment = booking.payment
     if payment is None or payment.method != PaymentMethod.CASH:
-        raise PaymentStateError("This booking is not a cash booking.")
+        raise _reject("PAYMENT_STATE_ERROR", "This booking is not a cash booking.")
+    if payment.status == PaymentStatus.PAID:
+        # Retry / double tap / provider and admin confirming the same cash: one result, no new side effects.
+        return payment
     if payment.status != PaymentStatus.PENDING:
-        raise PaymentStateError(f"Payment is already {payment.status}.", code="PAYMENT_ALREADY_PROCESSED")
+        raise _reject("PAYMENT_ALREADY_PROCESSED", f"Payment is already {payment.status}.")
     allowed = CASH_CONFIRMABLE_BY_ADMIN if user.role_code == RoleCode.ADMIN else CASH_CONFIRMABLE_BY_PROVIDER
     if booking.status not in allowed:
-        raise PaymentStateError("Cash can only be confirmed once the service is complete.", code="SERVICE_NOT_COMPLETE")
+        raise _reject("SERVICE_NOT_COMPLETE", "Cash can only be confirmed once the service is complete.")
 
     payment.status = PaymentStatus.PAID
     payment.paid_at = utcnow()
@@ -133,6 +151,7 @@ def confirm_cash(db: Session, booking: Booking, user: User, note: str | None = N
             {"reference": booking.reference, "amount": str(payment.amount)},
         )
     log.info("payment.cash_confirmed", extra={"booking": booking.reference, "by_role": user.role_code})
+    events.publish(db, events.PAYMENT_CONFIRMED, booking=booking.reference, method=payment.method.value)
     try_close(db, booking)
     return payment
 
@@ -179,7 +198,7 @@ def try_close(db: Session, booking: Booking) -> bool:
 def ensure_settlement(db: Session, booking: Booking) -> ProviderSettlement | None:
     if booking.provider_id is None or booking.payment.status != PaymentStatus.PAID:
         return None
-    existing = db.query(ProviderSettlement).filter_by(booking_id=booking.id).one_or_none()
+    existing = db.scalar(select(ProviderSettlement).where(ProviderSettlement.booking_id == booking.id))
     if existing:
         return existing
     confirmer = db.get(User, booking.payment.confirmed_by_id) if booking.payment.confirmed_by_id else None
@@ -199,6 +218,13 @@ def ensure_settlement(db: Session, booking: Booking) -> ProviderSettlement | Non
 
 
 def settle(db: Session, admin: User, settlement: ProviderSettlement, reference: str | None, note: str | None) -> None:
+    # Lock and re-read: two admins (or a double click) must not pay a provider out twice.
+    settlement = db.scalars(
+        select(ProviderSettlement)
+        .where(ProviderSettlement.id == settlement.id)
+        .with_for_update(of=ProviderSettlement, key_share=True)
+        .execution_options(populate_existing=True)
+    ).one()
     if settlement.status == SettlementStatus.SETTLED:
         raise PaymentStateError("This settlement is already settled.", code="ALREADY_SETTLED")
     settlement.status = SettlementStatus.SETTLED
@@ -215,8 +241,106 @@ def settle(db: Session, admin: User, settlement: ProviderSettlement, reference: 
         settlement.id,
         {"reference": settlement.booking.reference, "amount": str(settlement.provider_earning), "ref": reference},
     )
+    events.publish(db, events.SETTLEMENT_SETTLED, booking=settlement.booking.reference)
 
 
 def cancel_payment(booking: Booking) -> None:
     if booking.payment and booking.payment.status == PaymentStatus.PENDING:
         booking.payment.status = PaymentStatus.CANCELLED
+
+
+# --------------------------------------------------------------------------- gateway callbacks
+
+
+@dataclass(frozen=True)
+class GatewayCallback:
+    """A normalised payment-provider notification (built by each gateway's webhook adapter)."""
+
+    gateway: str
+    external_transaction_id: str
+    status: str  # SUCCESS | FAILED | PENDING
+    booking_reference: str | None
+    amount: Decimal | None = None
+    currency: str | None = None
+    event_id: str | None = None  # the gateway's own callback id, when it provides one
+    payload: dict[str, Any] | None = None
+
+    @property
+    def dedupe_key(self) -> str:
+        return self.event_id or f"{self.external_transaction_id}:{self.status}"
+
+
+def record_gateway_callback(db: Session, cb: GatewayCallback) -> tuple[PaymentGatewayEvent, bool]:
+    """Record and apply a gateway callback exactly once. Returns (event, is_new).
+
+    Safe under retries and concurrent duplicate deliveries: the ledger insert uses
+    ``ON CONFLICT DO NOTHING`` on (gateway, dedupe_key), so only the first copy is
+    applied; every copy gets the same answer. The caller commits.
+    """
+    inserted = db.scalar(
+        insert(PaymentGatewayEvent)
+        .values(
+            gateway=cb.gateway,
+            dedupe_key=cb.dedupe_key,
+            external_transaction_id=cb.external_transaction_id,
+            status=cb.status,
+            amount=cb.amount,
+            currency=cb.currency,
+            payload=cb.payload,
+            received_at=utcnow(),
+        )
+        .on_conflict_do_nothing(index_elements=["gateway", "dedupe_key"])
+        .returning(PaymentGatewayEvent.id)
+    )
+    if inserted is None:
+        existing = db.scalar(
+            select(PaymentGatewayEvent).where(
+                PaymentGatewayEvent.gateway == cb.gateway, PaymentGatewayEvent.dedupe_key == cb.dedupe_key
+            )
+        )
+        log.info("payment.gateway_duplicate", extra={"gateway": cb.gateway, "txn": cb.external_transaction_id})
+        return existing, False
+
+    event = db.get(PaymentGatewayEvent, inserted)
+    event.outcome = _apply_gateway_callback(db, cb, event)
+    event.processed_at = utcnow()
+    events.publish(db, events.PAYMENT_GATEWAY_EVENT, gateway=cb.gateway, outcome=event.outcome)
+    return event, True
+
+
+def _apply_gateway_callback(db: Session, cb: GatewayCallback, event: PaymentGatewayEvent) -> str:
+    booking_id = db.scalar(select(Booking.id).where(Booking.reference == cb.booking_reference))
+    if booking_id is None:
+        log.error("payment.gateway_unknown_booking", extra={"gateway": cb.gateway, "txn": cb.external_transaction_id})
+        return "UNKNOWN_PAYMENT"
+    booking = lock_booking(db, booking_id)
+    payment = booking.payment
+    event.payment_id = payment.id
+    if payment.method == PaymentMethod.CASH or GATEWAYS[payment.method].name != cb.gateway:
+        log.error("payment.gateway_method_mismatch", extra={"booking": booking.reference, "gateway": cb.gateway})
+        return "NOT_PAYABLE"
+    if cb.status != "SUCCESS":
+        if cb.status == "FAILED" and payment.status == PaymentStatus.PENDING:
+            payment.status = PaymentStatus.FAILED
+            payment.notes = f"{cb.gateway} reported failure ({cb.external_transaction_id})"
+            return "MARKED_FAILED"
+        return "RECORDED"
+    if payment.status == PaymentStatus.PAID:
+        return "ALREADY_APPLIED"
+    # The ledger amount must match the immutable booking snapshot exactly; never trust a mismatch.
+    if cb.amount is None or cb.amount != payment.amount or (cb.currency or payment.currency) != payment.currency:
+        log.error(
+            "payment.gateway_amount_mismatch",
+            extra={"booking": booking.reference, "expected": str(payment.amount), "got": str(cb.amount)},
+        )
+        metrics.PAYMENT_FAILURES.labels("AMOUNT_MISMATCH").inc()
+        return "AMOUNT_MISMATCH"
+    if payment.status not in (PaymentStatus.PENDING, PaymentStatus.FAILED):
+        return "NOT_PAYABLE"
+    payment.status = PaymentStatus.PAID
+    payment.paid_at = utcnow()
+    payment.gateway_reference = cb.external_transaction_id
+    notify(db, booking.customer.user_id, "PAYMENT_CONFIRMED", booking)
+    events.publish(db, events.PAYMENT_CONFIRMED, booking=booking.reference, method=payment.method.value)
+    try_close(db, booking)
+    return "APPLIED"

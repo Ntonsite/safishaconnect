@@ -1,15 +1,17 @@
 """Customer booking endpoints. Every lookup is scoped to the signed-in customer."""
 
 import uuid
-from typing import Literal
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Header, Query, Response, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.models import Booking
 from app.models.enums import TERMINAL_STATUSES, BookingStatus, RoleCode
 from app.schemas.booking import BookingCreate, BookingDetail, BookingSummary, ReasonIn
 from app.security.deps import CurrentCustomer, DbSession
+from app.security.rate_limit import write_rate_limit
 from app.services import booking_views
 from app.services import bookings as booking_service
 from app.services.lifecycle import Actor
@@ -23,11 +25,49 @@ def _detail(db, booking: Booking) -> BookingDetail:
     return booking_views.detail(db, booking, RoleCode.CUSTOMER)
 
 
+IdempotencyKey = Annotated[
+    str | None,
+    Header(
+        alias="Idempotency-Key",
+        min_length=8,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_.:-]+$",
+        description="Client-generated key (e.g. a UUID per booking attempt). Retrying with the same key "
+        "returns the original booking instead of creating a duplicate.",
+    ),
+]
+
+
 @router.post("", response_model=BookingDetail, status_code=status.HTTP_201_CREATED)
-def create_booking(data: BookingCreate, customer: CurrentCustomer, db: DbSession) -> BookingDetail:
-    booking = booking_service.create_booking(db, customer, data)
-    db.commit()
+def create_booking(
+    data: BookingCreate,
+    customer: CurrentCustomer,
+    db: DbSession,
+    response: Response,
+    idempotency_key: IdempotencyKey = None,
+) -> BookingDetail:
+    write_rate_limit(customer.user_id, "create-booking")
+    if idempotency_key:
+        existing = booking_service.find_by_idempotency_key(db, customer, idempotency_key)
+        if existing is not None:
+            return _replayed(db, response, booking_service.check_replay(existing, data))
+    try:
+        booking = booking_service.create_booking(db, customer, data, idempotency_key)
+        db.commit()
+    except IntegrityError as exc:
+        # Lost a race with a concurrent request carrying the same key: return the winner's booking.
+        db.rollback()
+        existing = booking_service.find_by_idempotency_key(db, customer, idempotency_key) if idempotency_key else None
+        if existing is None:
+            raise exc
+        return _replayed(db, response, booking_service.check_replay(existing, data))
     db.refresh(booking)
+    return _detail(db, booking)
+
+
+def _replayed(db, response: Response, booking: Booking) -> BookingDetail:
+    response.status_code = status.HTTP_200_OK
+    response.headers["Idempotent-Replayed"] = "true"
     return _detail(db, booking)
 
 
@@ -54,7 +94,7 @@ def get_booking(booking_id: uuid.UUID, customer: CurrentCustomer, db: DbSession)
 
 @router.post("/{booking_id}/confirm", response_model=BookingDetail)
 def confirm_booking(booking_id: uuid.UUID, customer: CurrentCustomer, db: DbSession) -> BookingDetail:
-    booking = booking_service.get_customer_booking(db, customer, booking_id)
+    booking = booking_service.get_customer_booking(db, customer, booking_id, for_update=True)
     booking_service.confirm_booking(db, booking, customer.user, Actor.CUSTOMER)
     db.commit()
     return _detail(db, booking)
@@ -62,7 +102,7 @@ def confirm_booking(booking_id: uuid.UUID, customer: CurrentCustomer, db: DbSess
 
 @router.post("/{booking_id}/cancel", response_model=BookingDetail)
 def cancel_booking(booking_id: uuid.UUID, data: ReasonIn, customer: CurrentCustomer, db: DbSession) -> BookingDetail:
-    booking = booking_service.get_customer_booking(db, customer, booking_id)
+    booking = booking_service.get_customer_booking(db, customer, booking_id, for_update=True)
     booking_service.cancel_booking(db, booking, customer.user, Actor.CUSTOMER, data.reason)
     db.commit()
     return _detail(db, booking)
@@ -70,7 +110,7 @@ def cancel_booking(booking_id: uuid.UUID, data: ReasonIn, customer: CurrentCusto
 
 @router.post("/{booking_id}/confirm-completion", response_model=BookingDetail)
 def confirm_completion(booking_id: uuid.UUID, customer: CurrentCustomer, db: DbSession) -> BookingDetail:
-    booking = booking_service.get_customer_booking(db, customer, booking_id)
+    booking = booking_service.get_customer_booking(db, customer, booking_id, for_update=True)
     booking_service.customer_confirm_completion(db, booking, customer.user)
     db.commit()
     return _detail(db, booking)

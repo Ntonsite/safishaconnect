@@ -8,11 +8,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.core.errors import NotFoundError
-from app.models import Booking, Provider, User
+from app.models import Provider, User
 from app.models.enums import RoleCode
 from app.schemas.booking import PaymentSummary
 from app.security.deps import DbSession, require_roles
 from app.services import payments
+from app.services.locks import lock_booking
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -28,9 +29,7 @@ def confirm_cash(
     db: DbSession,
     user: Annotated[User, Depends(require_roles(RoleCode.PROVIDER, RoleCode.ADMIN))],
 ) -> PaymentSummary:
-    booking = db.scalar(select(Booking).where(Booking.id == booking_id).with_for_update(of=Booking))
-    if booking is None:
-        raise NotFoundError("Booking not found.")
+    booking = lock_booking(db, booking_id)  # serialises provider + admin confirmations of the same cash
     if user.role_code == RoleCode.PROVIDER:
         provider_id = db.scalar(select(Provider.id).where(Provider.user_id == user.id))
         # Only the provider who did the job can confirm they collected the cash.

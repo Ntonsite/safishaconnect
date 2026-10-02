@@ -1,19 +1,35 @@
-"""Booking use-cases: create, confirm, cancel, progress, complete."""
+"""Booking use-cases: create, confirm, cancel, progress, complete.
 
+Mutating use-cases expect the caller to hold the booking row lock (``for_update=True``
+lookups below); see :mod:`app.services.locks`.
+"""
+
+import hashlib
 import secrets
 from datetime import date, time, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import events
 from app.core.config import get_settings
 from app.core.errors import ConflictError, NotFoundError, ValidationFailedError
 from app.core.logging import get_logger
-from app.models import Booking, BookingPriceItem, BookingStatusHistory, Customer, Provider, ServiceArea, User
+from app.models import (
+    Booking,
+    BookingPriceItem,
+    BookingStatusHistory,
+    Customer,
+    Provider,
+    ProviderAvailability,
+    ServiceArea,
+    User,
+)
 from app.models.enums import BookingStatus, RoleCode
 from app.schemas.booking import AvailabilityOut, BookingCreate, SlotOut
 from app.services import assignment, payments, platform_settings
 from app.services.lifecycle import PROVIDER_PROGRESS, Actor, transition
+from app.services.locks import lock_booking
 from app.services.notifications import notify
 from app.services.pricing import Quote, calculate_quote, split_commission
 from app.utils.clock import add_minutes, local_now, local_today, to_local_datetime, utcnow
@@ -59,19 +75,42 @@ def _active_area(db: Session, area_id) -> ServiceArea:
 
 
 def slots(db: Session, service_id, area_id, day: date, duration_minutes: int) -> AvailabilityOut:
-    """Start times for a day, each flagged with whether an eligible provider is free."""
+    """Start times for a day, each flagged with whether an eligible provider is free.
+
+    Loads the candidate providers, their hours for that weekday and their commitments for
+    that day once (3 queries), then evaluates every slot in memory with the same rules as
+    :func:`assignment.find_eligible`.
+    """
     settings = get_settings()
     _active_area(db, area_id)
+    providers = list(db.scalars(assignment.eligible_base_query(service_id, area_id)).unique())
+    ids = [p.id for p in providers]
+    hours = {
+        row.provider_id: (row.start_time, row.end_time)
+        for row in db.execute(
+            select(
+                ProviderAvailability.provider_id, ProviderAvailability.start_time, ProviderAvailability.end_time
+            ).where(ProviderAvailability.provider_id.in_(ids), ProviderAvailability.day_of_week == day.isoweekday())
+        )
+    }
+    commitments = assignment.commitments_for_day(db, [p.id for p in providers if p.id in hours], day)
+
     out: list[SlotOut] = []
     for hour in range(settings.booking_slot_start_hour, settings.booking_slot_end_hour + 1):
         start = time(hour, 0)
+        end = add_minutes(start, duration_minutes)
         try:
             validate_schedule(db, day, start, duration_minutes)
-            spec = assignment.JobSpec(service_id, area_id, day, start, duration_minutes)
-            available = bool(assignment.find_eligible(db, spec))
+            available = any(
+                p.id in hours
+                and hours[p.id][0] <= start
+                and hours[p.id][1] >= end
+                and assignment.fits(p.capacity, commitments[p.id], start, duration_minutes)
+                for p in providers
+            )
         except ValidationFailedError:
             available = False
-        out.append(SlotOut(start_time=start, end_time=add_minutes(start, duration_minutes), available=available))
+        out.append(SlotOut(start_time=start, end_time=end, available=available))
     return AvailabilityOut(date=day, duration_minutes=duration_minutes, slots=out)
 
 
@@ -92,7 +131,22 @@ def price_items_from_quote(quote: Quote) -> list[BookingPriceItem]:
     ]
 
 
-def create_booking(db: Session, customer: Customer, data: BookingCreate) -> Booking:
+def request_fingerprint(data: BookingCreate) -> str:
+    """Stable hash of what the customer asked for, to detect an Idempotency-Key reused for a different booking."""
+    return hashlib.sha256(data.model_dump_json(exclude={"confirm"}).encode()).hexdigest()
+
+
+def find_by_idempotency_key(db: Session, customer: Customer, key: str) -> Booking | None:
+    return db.scalar(select(Booking).where(Booking.customer_id == customer.id, Booking.idempotency_key == key))
+
+
+def check_replay(booking: Booking, data: BookingCreate) -> Booking:
+    if booking.idempotency_fingerprint != request_fingerprint(data):
+        raise ConflictError("This request key was already used for a different booking.", code="IDEMPOTENCY_KEY_REUSED")
+    return booking
+
+
+def create_booking(db: Session, customer: Customer, data: BookingCreate, idempotency_key: str | None = None) -> Booking:
     area = _active_area(db, data.area_id)
     payments.ensure_method_available(data.payment_method)
     quote = calculate_quote(db, data)
@@ -125,6 +179,8 @@ def create_booking(db: Session, customer: Customer, data: BookingCreate) -> Book
         provider_earning=economics.provider_earning,
         payment_method=data.payment_method,
         price_items=price_items_from_quote(quote),
+        idempotency_key=idempotency_key,
+        idempotency_fingerprint=request_fingerprint(data) if idempotency_key else None,
     )
     db.add(booking)
     db.flush()
@@ -142,6 +198,7 @@ def create_booking(db: Session, customer: Customer, data: BookingCreate) -> Book
     if not customer.default_area_id:
         customer.default_area_id = area.id
         customer.default_address = data.address_line
+    events.publish(db, events.BOOKING_CREATED, booking=booking.reference, total=str(booking.total_amount))
     log.info("booking.created", extra={"booking": booking.reference, "total": str(booking.total_amount)})
     db.flush()
     db.refresh(booking)
@@ -165,6 +222,7 @@ def cancel_booking(db: Session, booking: Booking, user: User, actor: Actor, reas
     transition(db, booking, BookingStatus.CANCELLED, actor, user, note=reason or f"Cancelled by {actor.value.lower()}")
     assignment.cancel_open_assignments(db, booking)
     payments.cancel_payment(booking)
+    events.publish(db, events.BOOKING_CANCELLED, booking=booking.reference, actor=actor)
     if actor != Actor.CUSTOMER:
         notify(db, booking.customer.user_id, "BOOKING_CANCELLED", booking)
 
@@ -201,15 +259,18 @@ def customer_confirm_completion(db: Session, booking: Booking, user: User) -> No
     payments.try_close(db, booking)
 
 
-def get_customer_booking(db: Session, customer: Customer, booking_id) -> Booking:
-    booking = db.get(Booking, booking_id)
+def get_customer_booking(db: Session, customer: Customer, booking_id, *, for_update: bool = False) -> Booking:
+    booking = get_booking(db, booking_id, for_update=for_update)
     # Same response for "missing" and "not yours" so IDs can't be probed.
-    if booking is None or booking.customer_id != customer.id:
+    if booking.customer_id != customer.id:
         raise NotFoundError("Booking not found.")
     return booking
 
 
-def get_booking(db: Session, booking_id) -> Booking:
+def get_booking(db: Session, booking_id, *, for_update: bool = False) -> Booking:
+    """Load a booking; ``for_update`` locks and re-reads it for a state change."""
+    if for_update:
+        return lock_booking(db, booking_id)
     booking = db.get(Booking, booking_id)
     if booking is None:
         raise NotFoundError("Booking not found.")
