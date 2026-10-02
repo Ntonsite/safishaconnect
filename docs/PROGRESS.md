@@ -183,7 +183,7 @@ I finished the in-progress mobile redesign and verified it **on a physical Andro
 - **Phone numbers** are formatted as `+255 713 000 002`.
 - **The journey test** used Flutter's English-only `pageBack()`, so the Kiswahili run always failed at its last step. Fixed.
 
-**Verification:** `flutter analyze` clean · 48 tests ✓ · device journey EN ✓ (SC-TKM3GW) and SW ✓ (SC-UVNRU3) · release APK built and installed on the phone.
+**Verification:** `flutter analyze` clean · 48 tests ✓ · device journey EN ✓ (SC-TKM3GW) and SW ✓ (SC-UVNRU3) · release APK build to be done separately.
 
 **Remaining limitations:**
 
