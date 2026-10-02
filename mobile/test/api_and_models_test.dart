@@ -10,47 +10,91 @@ import 'package:safishacon_mobile/ui/widgets/common.dart';
 
 void main() {
   group('ApiClient', () {
-    test('refreshes an expired access token once and retries the request', () async {
-      var meCalls = 0;
-      final client = MockClient((request) async {
-        if (request.url.path == '/api/v1/auth/refresh') {
-          expect(jsonDecode(request.body)['refresh_token'], 'old-refresh');
-          return http.Response(jsonEncode({'access_token': 'new-access', 'refresh_token': 'new-refresh'}), 200);
-        }
-        if (request.url.path == '/api/v1/auth/me') {
-          meCalls++;
-          if (request.headers['Authorization'] != 'Bearer new-access') {
-            return http.Response(jsonEncode({'error': {'code': 'TOKEN_EXPIRED', 'message': 'expired'}}), 401);
+    test(
+      'refreshes an expired access token once and retries the request',
+      () async {
+        var meCalls = 0;
+        final client = MockClient((request) async {
+          if (request.url.path == '/api/v1/auth/refresh') {
+            expect(jsonDecode(request.body)['refresh_token'], 'old-refresh');
+            return http.Response(
+              jsonEncode({
+                'access_token': 'new-access',
+                'refresh_token': 'new-refresh',
+              }),
+              200,
+            );
           }
-          return http.Response(jsonEncode({'id': '1'}), 200);
-        }
-        return http.Response('', 404);
-      });
-      final store = MemoryTokenStore();
-      await store.writeRefreshToken('old-refresh');
-      final api = ApiClient(baseUrl: 'http://api', tokens: store, httpClient: client);
+          if (request.url.path == '/api/v1/auth/me') {
+            meCalls++;
+            if (request.headers['Authorization'] != 'Bearer new-access') {
+              return http.Response(
+                jsonEncode({
+                  'error': {'code': 'TOKEN_EXPIRED', 'message': 'expired'},
+                }),
+                401,
+              );
+            }
+            return http.Response(jsonEncode({'id': '1'}), 200);
+          }
+          return http.Response('', 404);
+        });
+        final store = MemoryTokenStore();
+        await store.writeRefreshToken('old-refresh');
+        final api = ApiClient(
+          baseUrl: 'http://api',
+          tokens: store,
+          httpClient: client,
+        );
 
-      final me = await api.get('/auth/me');
+        final me = await api.get('/auth/me');
 
-      expect(me, {'id': '1'});
-      expect(meCalls, 2);
-      expect(await store.readRefreshToken(), 'new-refresh');
-    });
+        expect(me, {'id': '1'});
+        expect(meCalls, 2);
+        expect(await store.readRefreshToken(), 'new-refresh');
+      },
+    );
 
     test('surfaces API error codes', () async {
-      final client = MockClient((_) async => http.Response(
-          jsonEncode({'error': {'code': 'DUPLICATE_REVIEW', 'message': 'Already reviewed'}}), 409));
-      final api = ApiClient(baseUrl: 'http://api', tokens: MemoryTokenStore(), httpClient: client);
+      final client = MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'error': {
+              'code': 'DUPLICATE_REVIEW',
+              'message': 'Already reviewed',
+            },
+          }),
+          409,
+        ),
+      );
+      final api = ApiClient(
+        baseUrl: 'http://api',
+        tokens: MemoryTokenStore(),
+        httpClient: client,
+      );
       expect(
         () => api.post('/reviews', {}),
-        throwsA(isA<ApiException>().having((e) => e.code, 'code', 'DUPLICATE_REVIEW').having((e) => e.status, 'status', 409)),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.code, 'code', 'DUPLICATE_REVIEW')
+              .having((e) => e.status, 'status', 409),
+        ),
       );
     });
 
     test('reports network failures distinctly', () async {
       final client = MockClient((_) async => throw Exception('offline'));
-      final api = ApiClient(baseUrl: 'http://api', tokens: MemoryTokenStore(), httpClient: client);
-      expect(() => api.get('/services', auth: false), throwsA(isA<ApiException>().having((e) => e.isNetwork, 'network', true)));
+      final api = ApiClient(
+        baseUrl: 'http://api',
+        tokens: MemoryTokenStore(),
+        httpClient: client,
+      );
+      expect(
+        () => api.get('/services', auth: false),
+        throwsA(
+          isA<ApiException>().having((e) => e.isNetwork, 'network', true),
+        ),
+      );
     });
   });
 
@@ -60,7 +104,11 @@ void main() {
         'id': 'b1',
         'reference': 'SC-ABC123',
         'status': 'PROVIDER_ASSIGNED',
-        'service': {'name_en': 'Deep Cleaning', 'name_sw': 'Usafi wa Kina', 'icon': 'sparkles'},
+        'service': {
+          'name_en': 'Deep Cleaning',
+          'name_sw': 'Usafi wa Kina',
+          'icon': 'sparkles',
+        },
         'area_name': 'Mikocheni',
         'scheduled_date': '2026-10-02',
         'scheduled_start_time': '10:00:00',
@@ -71,7 +119,12 @@ void main() {
         'bedrooms': 3,
         'bathrooms': 2,
         'price_items': [
-          {'label_en': 'Deep Cleaning', 'label_sw': 'Usafi wa Kina', 'quantity': 1, 'amount': '70000.00'},
+          {
+            'label_en': 'Deep Cleaning',
+            'label_sw': 'Usafi wa Kina',
+            'quantity': 1,
+            'amount': '70000.00',
+          },
         ],
         'history': [
           {'to_status': 'CONFIRMED', 'created_at': '2026-10-01T10:00:00Z'},

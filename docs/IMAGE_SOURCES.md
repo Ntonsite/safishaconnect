@@ -43,6 +43,12 @@ Pillow EXIF orientation normalization, RGB conversion, Lanczos resizing and WebP
 - Mobile/tablet hero: 4:3 crop from 24% of source height, widths 480/800; focus is face and cleaning action. CTA precedes the photograph.
 - City: original 16:9 composition, widths 480/800/1200.
 - Explicit intrinsic dimensions and matching CSS aspect ratios reserve space. Hero uses `fetchPriority="high"`; city uses `loading="lazy"`; both decode asynchronously. No runtime external photo requests.
-- Total eight variants: approximately 448 KiB; a browser selects one hero and one city variant, rather than downloading all eight. Typical 1? mobile selection is about 44 KB combined; desktop about 122 KB combined (image bytes only). High density screens may select larger files.
+- Total eight variants: approximately 448 KiB; a browser selects one hero and one city variant, rather than downloading all eight. Typical 1× mobile selection is about 44 KB combined; desktop about 122 KB combined (image bytes only). High density screens may select larger files.
 
 When replacing imagery, update the central config, source register, dimensions, localized alt text and intentional desktop/mobile crops together. Retain releases from actual providers, customers and property owners.
+
+## Flutter customer app (2026-10-02)
+
+`mobile/assets/images/cleaning-professional.webp` reuses the licensed Pexels 6197114 mobile crop (21,520 bytes) below the home service list. It remains illustrative photography, without a Tanzania location or SafishaCon provider identity claim. Provider summaries use initials and actual API profile data.
+
+DM Sans is bundled at `mobile/assets/fonts/DMSans.ttf` (240,164 bytes), sourced from the Google Fonts `ofl/dmsans` repository. Its SIL Open Font License is included beside it as `OFL.txt`. No font CDN is required at runtime.

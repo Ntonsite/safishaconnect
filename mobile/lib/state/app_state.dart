@@ -14,11 +14,13 @@ class AppState extends ChangeNotifier {
   Me? me;
   Locale locale;
   bool demoMode = false;
+  Map<String, dynamic> brand = {};
 
   /// Demo customer credentials, only served by the API when DEMO_MODE is on.
   ({String email, String password})? demoCustomer;
 
-  AppState(this.repo, {Locale? initialLocale}) : locale = initialLocale ?? const Locale('en') {
+  AppState(this.repo, {Locale? initialLocale})
+    : locale = initialLocale ?? const Locale('en') {
     repo.api.onSessionExpired = () {
       me = null;
       status = AuthStatus.signedOut;
@@ -40,17 +42,23 @@ class AppState extends ChangeNotifier {
   Future<void> bootstrap() async {
     try {
       final config = await repo.config();
+      brand = Map<String, dynamic>.from(config['brand'] as Map? ?? {});
       demoMode = config['demo_mode'] == true;
       for (final account in (config['demo_accounts'] as List? ?? const [])) {
         if (account['role'] == 'customer') {
-          demoCustomer = (email: account['email'] as String, password: account['password'] as String);
+          demoCustomer = (
+            email: account['email'] as String,
+            password: account['password'] as String,
+          );
         }
       }
     } catch (_) {}
     try {
       if (await repo.api.refresh()) {
         me = await repo.me();
-        status = me!.role == 'CUSTOMER' ? AuthStatus.signedIn : AuthStatus.signedOut;
+        status = me!.role == 'CUSTOMER'
+            ? AuthStatus.signedIn
+            : AuthStatus.signedOut;
       } else {
         status = AuthStatus.signedOut;
       }
@@ -65,8 +73,19 @@ class AppState extends ChangeNotifier {
     await _afterLogin();
   }
 
-  Future<void> register({required String fullName, required String phone, String? email, required String password}) async {
-    await repo.register(fullName: fullName, phone: phone, email: email, password: password, locale: locale.languageCode);
+  Future<void> register({
+    required String fullName,
+    required String phone,
+    String? email,
+    required String password,
+  }) async {
+    await repo.register(
+      fullName: fullName,
+      phone: phone,
+      email: email,
+      password: password,
+      locale: locale.languageCode,
+    );
     await _afterLogin();
   }
 
@@ -75,7 +94,11 @@ class AppState extends ChangeNotifier {
     if (profile.role != 'CUSTOMER') {
       // The mobile app is for customers; providers and admins use the web portal.
       await repo.logout();
-      throw ApiException(403, 'CUSTOMERS_ONLY', 'This app is for customers. Please use the web portal.');
+      throw ApiException(
+        403,
+        'CUSTOMERS_ONLY',
+        'This app is for customers. Please use the web portal.',
+      );
     }
     me = profile;
     status = AuthStatus.signedIn;

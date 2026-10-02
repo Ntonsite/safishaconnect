@@ -14,7 +14,10 @@ import 'ui/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final api = ApiClient(baseUrl: AppConfig.apiBaseUrl, tokens: SecureTokenStore());
+  final api = ApiClient(
+    baseUrl: AppConfig.apiBaseUrl,
+    tokens: SecureTokenStore(),
+  );
   final repo = Repository(api);
   final state = AppState(repo, initialLocale: await AppState.savedLocale());
   runApp(SafishaApp(repo: repo, state: state));
@@ -35,6 +38,7 @@ class SafishaApp extends StatelessWidget {
       ],
       child: Consumer<AppState>(
         builder: (context, app, _) => MaterialApp(
+          key: ValueKey(app.status),
           title: AppConfig.appName,
           debugShowCheckedModeBanner: false,
           theme: buildTheme(),
@@ -61,8 +65,31 @@ class _Splash extends StatelessWidget {
   const _Splash();
 
   @override
-  Widget build(BuildContext context) => const Scaffold(
-        backgroundColor: Brand.green700,
-        body: Center(child: Icon(Icons.water_drop_outlined, color: Brand.green100, size: 56)),
-      );
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Brand.canvas,
+    body: SafeArea(
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.water_drop_outlined,
+              color: Brand.green700,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              AppConfig.appName,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              AppLocalizations.of(context).startingApp,
+              style: const TextStyle(color: Brand.ink3),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

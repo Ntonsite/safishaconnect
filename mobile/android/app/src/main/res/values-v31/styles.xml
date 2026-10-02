@@ -1,0 +1,7 @@
+<resources>
+<style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+<item name="android:windowSplashScreenBackground">#F5F6F1</item>
+<item name="android:windowSplashScreenAnimatedIcon">@drawable/safisha_mark</item>
+<item name="android:windowLightStatusBar">true</item>
+<item name="android:statusBarColor">#F5F6F1</item>
+</style></resources>

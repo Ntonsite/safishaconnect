@@ -67,11 +67,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String hello(String name) {
-    return 'Habari, $name';
+    return 'Hello, $name';
   }
 
   @override
-  String get homeSubtitle => 'Here\'s what\'s happening with your cleaning.';
+  String get homeSubtitle => 'A clean home, on your schedule.';
 
   @override
   String get bookCleaning => 'Book a cleaning';
@@ -213,15 +213,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get bookingConfirmed =>
-      'Booking confirmed — we\'re finding you a verified cleaner.';
+  String get bookingConfirmed => 'Your cleaning is booked';
 
   @override
   String get bookingReference => 'Booking reference';
 
   @override
   String get findingProvider =>
-      'We\'re finding a verified cleaner for you. Follow the progress below.';
+      'We\'re finding an available verified cleaner for you. You can track every step of your booking.';
 
   @override
   String get progress => 'Progress';
@@ -231,7 +230,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get awaitingCleaner =>
-      'We\'re matching you with a verified cleaner. This usually takes a few minutes.';
+      'We\'re checking verified providers available in your area. Your booking will update when a cleaner accepts.';
 
   @override
   String get call => 'Call';
@@ -252,11 +251,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get payment => 'Payment';
 
   @override
-  String get confirmCompletion => 'Confirm job completed';
+  String get confirmCompletion => 'Confirm completion';
 
   @override
   String get confirmCompletionBody =>
-      'Happy with the cleaning? Confirm so we can close the booking.';
+      'Has your cleaning been completed successfully? Confirm below or let us know about a problem.';
 
   @override
   String get reportIssue => 'Report an issue';
@@ -327,7 +326,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get networkError =>
-      'We can\'t reach the server. Check your connection.';
+      'We couldn\'t connect. Check your internet connection and try again.';
 
   @override
   String minutes(int count) {
@@ -387,7 +386,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusCUSTOMER_CONFIRMED => 'Completion confirmed';
 
   @override
-  String get statusCLOSED => 'Closed';
+  String get statusCLOSED => 'Completed';
 
   @override
   String get statusCANCELLED => 'Cancelled';
@@ -399,7 +398,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusDISPUTED => 'Issue under review';
 
   @override
-  String get paymentPENDING => 'Pending';
+  String get paymentPENDING => 'Pay after cleaning';
 
   @override
   String get paymentPAID => 'Paid';
@@ -424,4 +423,240 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get included => 'Included';
+
+  @override
+  String get popularServices => 'Our cleaning services';
+
+  @override
+  String get howTitle => 'Book. We assign. We clean.';
+
+  @override
+  String get howBody =>
+      'Choose your service and time. We assign a verified professional who brings the equipment. Pay in cash after cleaning.';
+
+  @override
+  String get activeBooking => 'Your next cleaning';
+
+  @override
+  String get trackBooking => 'Track booking';
+
+  @override
+  String get backHome => 'Back to home';
+
+  @override
+  String get bookAgain => 'Book again';
+
+  @override
+  String get allBookings => 'All';
+
+  @override
+  String get pastBookings => 'Past';
+
+  @override
+  String get noFilteredBookings => 'No bookings here yet';
+
+  @override
+  String get noFilteredBody =>
+      'Your bookings will appear here when they match this filter.';
+
+  @override
+  String get loadingBookings => 'Loading your bookings…';
+
+  @override
+  String get loadingServices => 'Loading cleaning services…';
+
+  @override
+  String get loadingBooking => 'Loading your booking…';
+
+  @override
+  String get loadingSlots => 'Checking available times…';
+
+  @override
+  String get updatingPrice => 'Updating your price…';
+
+  @override
+  String get confirmingBooking => 'Confirming your booking…';
+
+  @override
+  String get serviceDetails => 'About this cleaning';
+
+  @override
+  String get serviceIncludes => 'What\'s included';
+
+  @override
+  String get selectService => 'Choose this service';
+
+  @override
+  String get locationTitle => 'Where do you need cleaning?';
+
+  @override
+  String get locationHint =>
+      'Choose a supported neighbourhood in Dar es Salaam.';
+
+  @override
+  String get addressHint => 'Street, house or apartment number';
+
+  @override
+  String get addressValidation =>
+      'Enter at least 3 characters for your address.';
+
+  @override
+  String get instructionsHint =>
+      'Gate access or anything that needs special attention';
+
+  @override
+  String get reviewBooking => 'Review your cleaning';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get confirmBookingLabel => 'Confirm booking';
+
+  @override
+  String get property => 'Property';
+
+  @override
+  String get paymentAfter => 'Cash — pay after cleaning';
+
+  @override
+  String get findingTitle => 'Finding your cleaning professional';
+
+  @override
+  String get assignedTitle => 'Your cleaner is confirmed';
+
+  @override
+  String get enRouteTitle => 'Your cleaner is on the way';
+
+  @override
+  String get arrivedTitle => 'Your cleaner has arrived';
+
+  @override
+  String get inProgressTitle => 'Cleaning in progress';
+
+  @override
+  String get completedTitle => 'Cleaning completed';
+
+  @override
+  String get assignedBody =>
+      'Your professional is assigned for the date and time below. They bring their own equipment and materials.';
+
+  @override
+  String get enRouteBody =>
+      'Your professional has marked that they are travelling to your address.';
+
+  @override
+  String get arrivedBody =>
+      'Your professional has marked their arrival. Cleaning will begin next.';
+
+  @override
+  String get inProgressBody =>
+      'Your professional is working on your cleaning. You can check progress here.';
+
+  @override
+  String get closedBody =>
+      'Your cleaning is complete. Thank you for choosing SafishaCon.';
+
+  @override
+  String get cancelledBody =>
+      'This booking was cancelled. You can book another cleaning whenever you are ready.';
+
+  @override
+  String get disputedBody => 'Our team is reviewing the issue you reported.';
+
+  @override
+  String get refreshBooking => 'Refresh booking';
+
+  @override
+  String get refreshFailed =>
+      'We couldn\'t update the booking. The last received information is still shown.';
+
+  @override
+  String get contactDetails => 'Contact details';
+
+  @override
+  String get copyNumber => 'Copy number';
+
+  @override
+  String get numberCopied => 'Phone number copied';
+
+  @override
+  String get support => 'Need help?';
+
+  @override
+  String get supportBody =>
+      'For booking questions, contact SafishaCon using the details below.';
+
+  @override
+  String get contactSupport => 'Support contact details';
+
+  @override
+  String get noSupportContact =>
+      'Support contact details are currently unavailable. Please try again later.';
+
+  @override
+  String get accountDetails => 'Your account';
+
+  @override
+  String get signOutConfirm => 'Sign out of SafishaCon?';
+
+  @override
+  String get staySignedIn => 'Stay signed in';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
+
+  @override
+  String get loginFailed =>
+      'Check your email or phone number and password, then try again.';
+
+  @override
+  String get sessionExpired => 'Your session ended. Please sign in again.';
+
+  @override
+  String get customersOnly =>
+      'This app is for customers. Providers and administrators use the web portal.';
+
+  @override
+  String get bookingUnavailable =>
+      'This booking is no longer available. Return to your bookings and refresh.';
+
+  @override
+  String get slotUnavailable =>
+      'This time is no longer available. Choose another time before confirming.';
+
+  @override
+  String get unsupportedArea =>
+      'We don\'t serve this area yet. Please choose one of the listed neighbourhoods.';
+
+  @override
+  String get actionUnavailable =>
+      'This booking has changed. Refresh it before trying again.';
+
+  @override
+  String get accountExists =>
+      'An account with these contact details already exists. Try signing in.';
+
+  @override
+  String get invalidEmail => 'Enter a valid email address or leave it blank.';
+
+  @override
+  String get unknownStatus => 'Booking update';
+
+  @override
+  String ratingLabel(int count) {
+    return '$count out of 5 stars';
+  }
+
+  @override
+  String get cleaningPhotoAlt => 'A cleaning professional wiping a window.';
+
+  @override
+  String get startingApp => 'Preparing SafishaCon…';
+
+  @override
+  String get selected => 'Selected';
 }

@@ -1,8 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/repository.dart';
@@ -10,45 +8,31 @@ import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-
-const _journey = [
-  'CONFIRMED',
-  'PROVIDER_ASSIGNED',
-  'PROVIDER_EN_ROUTE',
-  'PROVIDER_ARRIVED',
-  'SERVICE_IN_PROGRESS',
-  'COMPLETED_BY_PROVIDER',
-  'CLOSED',
-];
-
-const _position = {
-  'PENDING_CONFIRMATION': 0,
-  'CONFIRMED': 1,
-  'FINDING_PROVIDER': 1,
-  'REASSIGNMENT_REQUIRED': 1,
-  'PROVIDER_ASSIGNED': 1,
-  'PROVIDER_EN_ROUTE': 2,
-  'PROVIDER_ARRIVED': 3,
-  'SERVICE_IN_PROGRESS': 4,
-  'COMPLETED_BY_PROVIDER': 5,
-  'DISPUTED': 5,
-  'CUSTOMER_CONFIRMED': 6,
-  'CLOSED': 6,
-};
+import '../widgets/booking_widgets.dart';
+import '../widgets/service_widgets.dart';
 
 class BookingDetailScreen extends StatefulWidget {
   final String bookingId;
   final bool justCreated;
-  const BookingDetailScreen({super.key, required this.bookingId, this.justCreated = false});
+  final ValueChanged<BookingDetail>? onBookAgain;
+  const BookingDetailScreen({
+    super.key,
+    required this.bookingId,
+    this.justCreated = false,
+    this.onBookAgain,
+  });
 
   @override
   State<BookingDetailScreen> createState() => _BookingDetailScreenState();
 }
 
-class _BookingDetailScreenState extends State<BookingDetailScreen> {
+class _BookingDetailScreenState extends State<BookingDetailScreen>
+    with WidgetsBindingObserver {
   BookingDetail? _booking;
   Object? _error;
   bool _busy = false;
+  final _refresh = RefreshGate();
+  late bool _showSuccess;
   Timer? _poll;
   int _rating = 0;
   final _comment = TextEditingController();
@@ -58,20 +42,33 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _showSuccess = widget.justCreated;
     _load();
     _poll = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (_booking != null && liveStatuses.contains(_booking!.status)) _load();
+      if (_booking != null &&
+          liveStatuses.contains(_booking!.status) &&
+          ModalRoute.of(context)?.isCurrent == true &&
+          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        _load();
+      }
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _poll?.cancel();
     _comment.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
+  }
+
+  Future<void> _load() => _refresh.run(() async {
     try {
       final b = await _repo.booking(widget.bookingId);
       if (mounted) {
@@ -83,15 +80,18 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     } catch (e) {
       if (mounted) setState(() => _error = e);
     }
-  }
+  });
 
   Future<void> _run(Future<void> Function() action, {String? success}) async {
+    if (_busy) return;
     setState(() => _busy = true);
     try {
       await action();
       await _load();
       if (success != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(success)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(success)));
       }
     } catch (e) {
       if (mounted) showError(context, e);
@@ -108,7 +108,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         title: Text(l.cancelBooking),
         content: Text(l.cancelConfirm),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.keep)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.keep),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Brand.red600),
@@ -122,54 +125,18 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
   Future<void> _reportIssue() async {
     final l = AppLocalizations.of(context);
-    final description = TextEditingController();
-    var category = 'QUALITY';
-    final categories = [
-      ('QUALITY', l.issueQuality),
-      ('LATE_OR_NO_SHOW', l.issueLate),
-      ('DAMAGE', l.issueDamage),
-      ('CONDUCT', l.issueConduct),
-      ('PAYMENT', l.issuePayment),
-      ('OTHER', l.issueOther),
-    ];
-    final result = await showDialog<(String, String)>(
+    final result = await showModalBottomSheet<(String, String)>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(l.reportIssue),
-          content: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              DropdownButtonFormField<String>(
-                initialValue: category,
-                decoration: InputDecoration(labelText: l.issueCategory),
-                items: [for (final item in categories) DropdownMenuItem(value: item.$1, child: Text(item.$2))],
-                onChanged: (value) => setDialogState(() => category = value ?? category),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: description,
-                maxLines: 4,
-                maxLength: 2000,
-                decoration: InputDecoration(labelText: l.issueDescription, helperText: l.issueDescriptionHint),
-                onChanged: (_) => setDialogState(() {}),
-              ),
-            ]),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l.back)),
-            FilledButton(
-              onPressed: description.text.trim().length < 10
-                  ? null
-                  : () => Navigator.pop(ctx, (category, description.text.trim())),
-              child: Text(l.sendIssue),
-            ),
-          ],
-        ),
-      ),
+      useSafeArea: true,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => const _IssueSheet(),
     );
-    description.dispose();
     if (result != null) {
-      await _run(() => _repo.reportIssue(widget.bookingId, result.$1, result.$2), success: l.issueSent);
+      await _run(
+        () => _repo.reportIssue(widget.bookingId, result.$1, result.$2),
+        success: l.issueSent,
+      );
     }
   }
 
@@ -178,9 +145,33 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final l = AppLocalizations.of(context);
     final b = _booking;
     return Scaffold(
-      appBar: AppBar(title: Text(b?.reference ?? '')),
+      appBar: AppBar(
+        // The success screen carries its own heading; the reference is the title elsewhere.
+        title: _showSuccess ? null : Text(b?.reference ?? l.bookings),
+        actions: [
+          if (!_showSuccess)
+            IconButton(
+              tooltip: l.refreshBooking,
+              onPressed: _busy ? null : _load,
+              icon: const Icon(Icons.refresh),
+            ),
+          IconButton(
+            tooltip: l.support,
+            onPressed: () => showSupportSheet(context),
+            icon: const Icon(Icons.help_outline),
+          ),
+        ],
+      ),
       body: b == null
-          ? (_error != null ? ErrorRetry(error: _error!, onRetry: _load) : const Center(child: CircularProgressIndicator()))
+          ? (_error != null
+                ? ErrorRetry(error: _error!, onRetry: _load)
+                : LoadingState(l.loadingBooking))
+          : _showSuccess
+          ? BookingSuccess(
+              booking: b,
+              onTrack: () => setState(() => _showSuccess = false),
+              onHome: () => Navigator.of(context).pop(),
+            )
           : RefreshIndicator(onRefresh: _load, child: _content(l, b)),
     );
   }
@@ -190,65 +181,59 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        if (widget.justCreated && (b.status == 'FINDING_PROVIDER' || b.status == 'REASSIGNMENT_REQUIRED')) ...[
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Brand.green50,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Brand.green100),
-            ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Icon(Icons.check_circle, color: Brand.green700, size: 28),
-                const SizedBox(width: 10),
-                Expanded(child: Text(l.bookingConfirmed, style: Theme.of(context).textTheme.titleMedium)),
-              ]),
-              const SizedBox(height: 12),
-              Text('${l.bookingReference}: ${b.reference}', style: const TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text('${b.serviceName(locale)} · ${formatDate(context, b.date)} · ${b.startTime}'),
-              Text('${b.areaName} · ${formatMoney(b.total, b.currency)}'),
-              const SizedBox(height: 10),
-              Text(l.findingProvider, style: const TextStyle(color: Brand.ink2)),
-            ]),
-          ),
+        if (_error != null) ...[
+          Text(l.refreshFailed, style: const TextStyle(color: Brand.amber700)),
+          TextButton(onPressed: _load, child: Text(l.retry)),
           const SizedBox(height: 12),
         ],
-        Row(children: [
-          ServiceBadge(b.serviceIcon),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(b.serviceName(locale), style: Theme.of(context).textTheme.titleLarge),
-              Text('${formatDate(context, b.date)} · ${b.startTime}–${addMinutes(b.startTime, b.durationMinutes)}',
-                  style: const TextStyle(color: Brand.ink3)),
-            ]),
-          ),
-        ]),
-        const SizedBox(height: 12),
-        Align(alignment: Alignment.centerLeft, child: StatusChip(b.status)),
-        const SizedBox(height: 16),
+        BookingStatusPanel(b),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            ServiceBadge(b.serviceIcon),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    b.serviceName(locale),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  Text(
+                    '${formatDate(context, b.date)} · ${b.startTime}–${addMinutes(b.startTime, b.durationMinutes)}',
+                    style: const TextStyle(color: Brand.ink3),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
 
         if (b.can('CONFIRM_COMPLETION')) ...[
           SectionCard(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text(l.confirmCompletionBody),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: _busy ? null : () => _run(() => _repo.confirmCompletion(b.id)),
-                icon: const Icon(Icons.check_circle_outline),
-                label: Text(l.confirmCompletion),
-              ),
-              if (b.can('REPORT_ISSUE')) ...[
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: _busy ? null : _reportIssue,
-                  icon: const Icon(Icons.report_outlined),
-                  label: Text(l.reportIssue),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              // The status panel above already asks the question; this card only holds the answers.
+              children: [
+                FilledButton.icon(
+                  onPressed: _busy
+                      ? null
+                      : () => _run(() => _repo.confirmCompletion(b.id)),
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: Text(l.confirmCompletion),
                 ),
+                if (b.can('REPORT_ISSUE')) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _busy ? null : _reportIssue,
+                    icon: const Icon(Icons.report_outlined),
+                    label: Text(l.reportIssue),
+                  ),
+                ],
               ],
-            ]),
+            ),
           ),
           const SizedBox(height: 12),
         ],
@@ -259,59 +244,113 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         if (b.review != null) ...[
           SectionCard(
             title: l.yourReview,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _stars((b.review!['rating'] as num).toInt()),
-              if ((b.review!['comment'] as String?)?.isNotEmpty ?? false) ...[
-                const SizedBox(height: 6),
-                Text(b.review!['comment']),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _stars((b.review!['rating'] as num).toInt()),
+                if ((b.review!['comment'] as String?)?.isNotEmpty ?? false) ...[
+                  const SizedBox(height: 6),
+                  Text(b.review!['comment']),
+                ],
               ],
-            ]),
+            ),
           ),
           const SizedBox(height: 12),
         ],
 
-        SectionCard(title: l.progress, child: _timeline(l, b)),
-        const SizedBox(height: 12),
-        SectionCard(title: l.yourCleaner, child: _provider(l, b)),
+        // Who is coming matters more than the step history, so the cleaner comes first.
+        if (b.provider != null) ...[
+          SectionCard(
+            title: l.yourCleaner,
+            child: ProviderSummary(b.provider!),
+          ),
+          const SizedBox(height: 12),
+        ],
+        // While the booking is live the timeline is the point of this screen: show it open.
+        ExpansionTile(
+          key: PageStorageKey('timeline-${b.id}'),
+          initiallyExpanded: liveStatuses.contains(b.status),
+          title: Text(l.progress),
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: const EdgeInsets.only(bottom: 16),
+          children: [BookingTimeline(b)],
+        ),
         const SizedBox(height: 12),
         SectionCard(
           title: l.details,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(b.addressLine ?? '', style: const TextStyle(fontWeight: FontWeight.w500)),
-            if (b.landmark != null) Text(b.landmark!, style: const TextStyle(color: Brand.ink3)),
-            Text(b.areaName, style: const TextStyle(color: Brand.ink3)),
-            if (b.bathrooms > 0) ...[
-              const SizedBox(height: 8),
-              Text(l.rooms(b.bedrooms, b.bathrooms)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                b.addressLine ?? '',
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+              if (b.landmark != null)
+                Text(b.landmark!, style: const TextStyle(color: Brand.ink3)),
+              Text(b.areaName, style: const TextStyle(color: Brand.ink3)),
+              if (b.bathrooms > 0) ...[
+                const SizedBox(height: 8),
+                Text(l.rooms(b.bedrooms, b.bathrooms)),
+              ],
             ],
-          ]),
+          ),
         ),
         const SizedBox(height: 12),
         SectionCard(
           title: l.priceBreakdown,
-          child: Column(children: [
-            PriceLines(
-              lines: [for (final line in b.priceItems) (label: line.label(locale), quantity: line.quantity, amount: line.amount)],
-              total: b.total,
-              currency: b.currency,
-            ),
-            if (b.payment != null) ...[
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: Text('${l.payment}: ${l.cash}', style: const TextStyle(color: Brand.ink3, fontSize: 13))),
-                Text(paymentLabel(l, b.payment!['status']),
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: b.payment!['status'] == 'PAID' ? Brand.green700 : Brand.amber700)),
-              ]),
+          child: Column(
+            children: [
+              PriceLines(
+                lines: [
+                  for (final line in b.priceItems)
+                    (
+                      label: line.label(locale),
+                      quantity: line.quantity,
+                      amount: line.amount,
+                    ),
+                ],
+                total: b.total,
+                currency: b.currency,
+              ),
+              if (b.payment != null) ...[
+                const SizedBox(height: 12),
+                SummaryRow(
+                  l.paymentAfter,
+                  paymentLabel(l, b.payment!['status']),
+                ),
+              ],
             ],
-          ]),
+          ),
+        ),
+        if (b.can('REPORT_ISSUE') && !b.can('CONFIRM_COMPLETION')) ...[
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _reportIssue,
+            icon: const Icon(Icons.report_outlined),
+            label: Text(l.reportIssue),
+          ),
+        ],
+        if (b.status == 'CLOSED' && widget.onBookAgain != null) ...[
+          const SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: () => widget.onBookAgain!(b),
+            child: Text(l.bookAgain),
+          ),
+        ],
+        const SizedBox(height: 16),
+        TextButton.icon(
+          onPressed: () => showSupportSheet(context),
+          icon: const Icon(Icons.help_outline),
+          label: Text(l.contactSupport),
         ),
         if (b.can('CANCEL')) ...[
           const SizedBox(height: 20),
           OutlinedButton(
             onPressed: _busy ? null : _cancel,
-            style: OutlinedButton.styleFrom(foregroundColor: Brand.red600, side: const BorderSide(color: Color(0xFFF0C9C3))),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Brand.red600,
+              side: const BorderSide(color: Color(0xFFF0C9C3)),
+            ),
             child: Text(l.cancelBooking),
           ),
         ],
@@ -319,139 +358,132 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
   }
 
-  Widget _timeline(AppLocalizations l, BookingDetail b) {
-    if (b.status == 'CANCELLED') {
-      return Row(children: [
-        const Icon(Icons.cancel, color: Brand.red600),
-        const SizedBox(width: 10),
-        Text(statusLabel(l, 'CANCELLED')),
-      ]);
-    }
-    final position = _position[b.status] ?? 0;
-    String? when(String status) {
-      final events = b.history.where((h) => h.toStatus == status);
-      return events.isEmpty ? null : DateFormat('d MMM, HH:mm').format(events.last.at);
-    }
-
-    return Column(
-      children: [
-        for (var i = 0; i < _journey.length; i++)
-          () {
-            final done = i < position || (i == position && b.status == 'CLOSED');
-            final current = i == position && !done;
-            final label = current ? statusLabel(l, b.status) : statusLabel(l, _journey[i]);
-            final stamp = current ? when(b.status) : when(_journey[i]);
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(children: [
-                Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: done ? Brand.green600 : Colors.white,
-                    border: Border.all(color: done || current ? Brand.green600 : Brand.line, width: 2),
-                  ),
-                  child: done
-                      ? const Icon(Icons.check, size: 13, color: Colors.white)
-                      : current
-                          ? const Center(child: CircleAvatar(radius: 4, backgroundColor: Brand.green600))
-                          : null,
+  Widget _stars(int value, {ValueChanged<int>? onTap}) => Wrap(
+    children: [
+      for (var i = 1; i <= 5; i++)
+        onTap == null
+            ? Icon(
+                i <= value ? Icons.star : Icons.star_outline,
+                color: const Color(0xFF98651A),
+                size: 24,
+              )
+            : Semantics(
+                selected: i == value,
+                child: IconButton(
+                  tooltip: AppLocalizations.of(context).ratingLabel(i),
+                  onPressed: _busy ? null : () => onTap(i),
+                  icon: Icon(i <= value ? Icons.star : Icons.star_outline),
+                  color: const Color(0xFF98651A),
+                  iconSize: 32,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(label,
-                      style: TextStyle(
-                        fontWeight: done || current ? FontWeight.w600 : FontWeight.w400,
-                        color: done || current ? Brand.ink : Brand.ink3,
-                      )),
-                ),
-                if ((done || current) && stamp != null) Text(stamp, style: const TextStyle(fontSize: 12, color: Brand.ink3)),
-              ]),
-            );
-          }(),
-      ],
-    );
-  }
-
-  Widget _provider(AppLocalizations l, BookingDetail b) {
-    final p = b.provider;
-    if (p == null) {
-      return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Icon(Icons.search, color: Brand.ink3),
-        const SizedBox(width: 10),
-        Expanded(child: Text(l.awaitingCleaner, style: const TextStyle(color: Brand.ink3))),
-      ]);
-    }
-    final name = p['display_name'] as String;
-    final ratingCount = p['rating_count'] as int? ?? 0;
-    final rating = num.tryParse('${p['rating_average']}') ?? 0;
-    final phone = p['phone'] as String?;
-    return Row(children: [
-      CircleAvatar(
-        radius: 24,
-        backgroundColor: Brand.green100,
-        child: Text(name.split(' ').take(2).map((s) => s[0]).join(),
-            style: const TextStyle(color: Brand.green900, fontWeight: FontWeight.w700)),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-          Row(children: [
-            const Icon(Icons.verified, size: 14, color: Brand.green600),
-            const SizedBox(width: 4),
-            Text(l.verified, style: const TextStyle(fontSize: 12, color: Brand.ink3)),
-            if (ratingCount > 0) ...[
-              const SizedBox(width: 8),
-              const Icon(Icons.star, size: 14, color: Color(0xFFD69E2E)),
-              Text(' ${rating.toStringAsFixed(1)} ($ratingCount)', style: const TextStyle(fontSize: 12)),
-            ],
-          ]),
-        ]),
-      ),
-      if (phone != null)
-        TextButton.icon(
-          onPressed: () {
-            Clipboard.setData(ClipboardData(text: phone));
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(phone)));
-          },
-          icon: const Icon(Icons.phone_outlined, size: 18),
-          label: Text(l.call),
-        ),
-    ]);
-  }
-
-  Widget _stars(int value, {ValueChanged<int>? onTap}) => Row(
-        children: [
-          for (var i = 1; i <= 5; i++)
-            GestureDetector(
-              onTap: onTap == null ? null : () => onTap(i),
-              child: Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: Icon(i <= value ? Icons.star_rounded : Icons.star_outline_rounded,
-                    color: const Color(0xFFD69E2E), size: onTap == null ? 22 : 38, semanticLabel: '$i / 5'),
               ),
-            ),
-        ],
-      );
+    ],
+  );
 
   Widget _reviewForm(AppLocalizations l, BookingDetail b) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _stars(_rating, onTap: (v) => setState(() => _rating = v)),
-          const SizedBox(height: 12),
-          TextField(controller: _comment, maxLines: 3, decoration: InputDecoration(labelText: l.rateComment)),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _rating == 0 || _busy
-                ? null
-                : () => _run(
-                      () => _repo.review(b.id, _rating, _comment.text.trim().isEmpty ? null : _comment.text.trim()),
-                      success: l.thanksReview,
-                    ),
-            child: Text(l.submitReview),
-          ),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _stars(_rating, onTap: (v) => setState(() => _rating = v)),
+      const SizedBox(height: 12),
+      TextField(
+        controller: _comment,
+        maxLines: 3,
+        decoration: InputDecoration(labelText: l.rateComment),
+      ),
+      const SizedBox(height: 12),
+      FilledButton(
+        onPressed: _rating == 0 || _busy
+            ? null
+            : () => _run(
+                () => _repo.review(
+                  b.id,
+                  _rating,
+                  _comment.text.trim().isEmpty ? null : _comment.text.trim(),
+                ),
+                success: l.thanksReview,
+              ),
+        child: Text(l.submitReview),
+      ),
+    ],
+  );
+}
+
+class _IssueSheet extends StatefulWidget {
+  const _IssueSheet();
+  @override
+  State<_IssueSheet> createState() => _IssueSheetState();
+}
+
+class _IssueSheetState extends State<_IssueSheet> {
+  final _description = TextEditingController();
+  String _category = 'QUALITY';
+  @override
+  void dispose() {
+    _description.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final categories = [
+      ('QUALITY', l.issueQuality),
+      ('LATE_OR_NO_SHOW', l.issueLate),
+      ('DAMAGE', l.issueDamage),
+      ('CONDUCT', l.issueConduct),
+      ('PAYMENT', l.issuePayment),
+      ('OTHER', l.issueOther),
+    ];
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        20 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l.reportIssue, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 20),
+            DropdownButtonFormField<String>(
+              initialValue: _category,
+              isExpanded: true,
+              decoration: InputDecoration(labelText: l.issueCategory),
+              items: [
+                for (final c in categories)
+                  DropdownMenuItem(value: c.$1, child: Text(c.$2)),
+              ],
+              onChanged: (v) => setState(() => _category = v ?? _category),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _description,
+              minLines: 3,
+              maxLines: 5,
+              maxLength: 2000,
+              decoration: InputDecoration(
+                labelText: l.issueDescription,
+                helperText: l.issueDescriptionHint,
+                helperMaxLines: 3,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _description.text.trim().length < 10
+                  ? null
+                  : () => Navigator.pop(context, (
+                      _category,
+                      _description.text.trim(),
+                    )),
+              child: Text(l.sendIssue),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

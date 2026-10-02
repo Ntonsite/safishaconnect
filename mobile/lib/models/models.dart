@@ -16,14 +16,14 @@ class Me {
   final String? defaultAddress;
 
   Me.fromJson(Map<String, dynamic> j)
-      : id = j['id'],
-        fullName = j['full_name'],
-        phone = j['phone'],
-        email = j['email'],
-        role = j['role'],
-        preferredLocale = j['preferred_locale'] ?? 'en',
-        defaultAreaId = j['default_area_id'],
-        defaultAddress = j['default_address'];
+    : id = j['id'],
+      fullName = j['full_name'],
+      phone = j['phone'],
+      email = j['email'],
+      role = j['role'],
+      preferredLocale = j['preferred_locale'] ?? 'en',
+      defaultAreaId = j['default_area_id'],
+      defaultAddress = j['default_address'];
 
   String get firstName => fullName.split(' ').first;
 }
@@ -36,11 +36,11 @@ class ServiceOption {
   final int maxQuantity;
 
   ServiceOption.fromJson(Map<String, dynamic> j)
-      : id = j['id'],
-        group = j['group'],
-        raw = j,
-        price = _num(j['price_amount']),
-        maxQuantity = j['max_quantity'] ?? 1;
+    : id = j['id'],
+      group = j['group'],
+      raw = j,
+      price = _num(j['price_amount']),
+      maxQuantity = j['max_quantity'] ?? 1;
 
   String name(String locale) => localized(raw, 'name', locale);
 }
@@ -58,20 +58,23 @@ class Service {
   final List<ServiceOption> options;
 
   Service.fromJson(Map<String, dynamic> j)
-      : id = j['id'],
-        slug = j['slug'],
-        icon = j['icon'],
-        raw = j,
-        basePrice = _num(j['base_price']),
-        usesRooms = j['uses_rooms'] ?? false,
-        includedBedrooms = j['included_bedrooms'] ?? 0,
-        includedBathrooms = j['included_bathrooms'] ?? 0,
-        maxRooms = j['max_rooms'] ?? 8,
-        options = ((j['options'] ?? []) as List).map((o) => ServiceOption.fromJson(o)).toList();
+    : id = j['id'],
+      slug = j['slug'],
+      icon = j['icon'],
+      raw = j,
+      basePrice = _num(j['base_price']),
+      usesRooms = j['uses_rooms'] ?? false,
+      includedBedrooms = j['included_bedrooms'] ?? 0,
+      includedBathrooms = j['included_bathrooms'] ?? 0,
+      maxRooms = j['max_rooms'] ?? 8,
+      options = ((j['options'] ?? []) as List)
+          .map((o) => ServiceOption.fromJson(o))
+          .toList();
 
   String name(String locale) => localized(raw, 'name', locale);
   String summary(String locale) => localized(raw, 'summary', locale);
-  List<ServiceOption> group(String g) => options.where((o) => o.group == g).toList();
+  List<ServiceOption> group(String g) =>
+      options.where((o) => o.group == g).toList();
 }
 
 class Area {
@@ -80,9 +83,9 @@ class Area {
   final String cityName;
 
   Area.fromJson(Map<String, dynamic> j)
-      : id = j['id'],
-        name = j['name'],
-        cityName = j['city_name'] ?? '';
+    : id = j['id'],
+      name = j['name'],
+      cityName = j['city_name'] ?? '';
 }
 
 class PriceLine {
@@ -91,9 +94,9 @@ class PriceLine {
   final num amount;
 
   PriceLine.fromJson(Map<String, dynamic> j)
-      : raw = j,
-        quantity = j['quantity'] ?? 1,
-        amount = _num(j['amount']);
+    : raw = j,
+      quantity = j['quantity'] ?? 1,
+      amount = _num(j['amount']);
 
   String label(String locale) => localized(raw, 'label', locale);
 }
@@ -105,10 +108,10 @@ class Quote {
   final int durationMinutes;
 
   Quote.fromJson(Map<String, dynamic> j)
-      : lines = (j['lines'] as List).map((l) => PriceLine.fromJson(l)).toList(),
-        total = _num(j['total_amount']),
-        currency = j['currency'] ?? 'TZS',
-        durationMinutes = j['estimated_duration_minutes'];
+    : lines = (j['lines'] as List).map((l) => PriceLine.fromJson(l)).toList(),
+      total = _num(j['total_amount']),
+      currency = j['currency'] ?? 'TZS',
+      durationMinutes = j['estimated_duration_minutes'];
 }
 
 class Slot {
@@ -117,14 +120,15 @@ class Slot {
   final bool available;
 
   Slot.fromJson(Map<String, dynamic> j)
-      : start = (j['start_time'] as String).substring(0, 5),
-        end = (j['end_time'] as String).substring(0, 5),
-        available = j['available'] == true;
+    : start = (j['start_time'] as String).substring(0, 5),
+      end = (j['end_time'] as String).substring(0, 5),
+      available = j['available'] == true;
 }
 
 class BookingSummary {
   final String id;
   final String reference;
+  final String? areaId;
   final String status;
   final Map<String, dynamic> service;
   final String areaName;
@@ -136,17 +140,18 @@ class BookingSummary {
   final String? providerName;
 
   BookingSummary.fromJson(Map<String, dynamic> j)
-      : id = j['id'],
-        reference = j['reference'],
-        status = j['status'],
-        service = j['service'],
-        areaName = j['area_name'],
-        date = DateTime.parse(j['scheduled_date']),
-        startTime = (j['scheduled_start_time'] as String).substring(0, 5),
-        durationMinutes = j['estimated_duration_minutes'],
-        total = _num(j['total_amount']),
-        currency = j['currency'] ?? 'TZS',
-        providerName = j['provider_name'];
+    : id = j['id'],
+      reference = j['reference'],
+      areaId = j['area_id'],
+      status = j['status'],
+      service = j['service'],
+      areaName = j['area_name'],
+      date = DateTime.parse(j['scheduled_date']),
+      startTime = (j['scheduled_start_time'] as String).substring(0, 5),
+      durationMinutes = j['estimated_duration_minutes'],
+      total = _num(j['total_amount']),
+      currency = j['currency'] ?? 'TZS',
+      providerName = j['provider_name'];
 
   String serviceName(String locale) => localized(service, 'name', locale);
   String get serviceIcon => service['icon'] ?? 'sparkles';
@@ -157,12 +162,14 @@ class StatusEvent {
   final DateTime at;
 
   StatusEvent.fromJson(Map<String, dynamic> j)
-      : toStatus = j['to_status'],
-        at = DateTime.parse(j['created_at']).toLocal();
+    : toStatus = j['to_status'],
+      at = DateTime.parse(j['created_at']).toLocal();
 }
 
 class BookingDetail extends BookingSummary {
   final String? addressLine;
+  final Map<String, dynamic>? propertyType;
+  final Map<String, dynamic>? size;
   final String? landmark;
   final int bedrooms;
   final int bathrooms;
@@ -174,17 +181,23 @@ class BookingDetail extends BookingSummary {
   final List<String> allowedActions;
 
   BookingDetail.fromJson(super.j)
-      : addressLine = j['address_line'],
-        landmark = j['landmark'],
-        bedrooms = j['bedrooms'] ?? 0,
-        bathrooms = j['bathrooms'] ?? 0,
-        priceItems = ((j['price_items'] ?? []) as List).map((l) => PriceLine.fromJson(l)).toList(),
-        history = ((j['history'] ?? []) as List).map((h) => StatusEvent.fromJson(h)).toList(),
-        provider = j['provider'],
-        payment = j['payment'],
-        review = j['review'],
-        allowedActions = List<String>.from(j['allowed_actions'] ?? const []),
-        super.fromJson();
+    : addressLine = j['address_line'],
+      propertyType = j['property_type'],
+      size = j['size'],
+      landmark = j['landmark'],
+      bedrooms = j['bedrooms'] ?? 0,
+      bathrooms = j['bathrooms'] ?? 0,
+      priceItems = ((j['price_items'] ?? []) as List)
+          .map((l) => PriceLine.fromJson(l))
+          .toList(),
+      history = ((j['history'] ?? []) as List)
+          .map((h) => StatusEvent.fromJson(h))
+          .toList(),
+      provider = j['provider'],
+      payment = j['payment'],
+      review = j['review'],
+      allowedActions = List<String>.from(j['allowed_actions'] ?? const []),
+      super.fromJson();
 
   bool can(String action) => allowedActions.contains(action);
 }

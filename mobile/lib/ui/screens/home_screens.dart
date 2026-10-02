@@ -7,187 +7,396 @@ import '../../models/models.dart';
 import '../../state/app_state.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/service_widgets.dart';
 import 'booking_detail_screen.dart';
 import 'booking_flow_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
-
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
 
 class _HomeShellState extends State<HomeShell> {
   int _tab = 0;
-  final _homeKey = GlobalKey<_BookingListState>();
-  final _bookingsKey = GlobalKey<_BookingListState>();
+  final _visited = <int>{0};
+  final _homeKey = GlobalKey<_HomeTabState>();
+  final _bookingsKey = GlobalKey<_BookingsTabState>();
+  bool _openingBooking = false;
 
-  Future<void> _book() async {
-    final created = await Navigator.of(context).push<BookingDetail>(
-      MaterialPageRoute(builder: (_) => const BookingFlowScreen()),
+  Future<void> _book({Service? service, BookingDetail? repeat}) async {
+    if (_openingBooking) return;
+    _openingBooking = true;
+    try {
+      final created = await Navigator.of(context).push<BookingDetail>(
+        MaterialPageRoute(
+          builder: (_) =>
+              BookingFlowScreen(initialService: service, repeatBooking: repeat),
+        ),
+      );
+      _openingBooking = false;
+      if (created != null && mounted) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => BookingDetailScreen(
+              bookingId: created.id,
+              justCreated: true,
+              onBookAgain: (b) => _book(repeat: b),
+            ),
+          ),
+        );
+      }
+      if (mounted) {
+        _homeKey.currentState?.reload();
+        _bookingsKey.currentState?.reload();
+      }
+    } finally {
+      _openingBooking = false;
+    }
+  }
+
+  Future<void> _detail(BookingSummary booking) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BookingDetailScreen(
+          bookingId: booking.id,
+          onBookAgain: (b) => _book(repeat: b),
+        ),
+      ),
     );
-    if (created != null && mounted) {
+    if (mounted) {
       _homeKey.currentState?.reload();
       _bookingsKey.currentState?.reload();
-      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => BookingDetailScreen(bookingId: created.id, justCreated: true)));
-      _homeKey.currentState?.reload();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final pages = [
-      _HomeTab(listKey: _homeKey, onBook: _book),
-      _BookingsTab(listKey: _bookingsKey),
-      const _ProfileTab(),
-    ];
     return Scaffold(
-      body: SafeArea(child: IndexedStack(index: _tab, children: pages)),
-      floatingActionButton: _tab == 2
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: _book,
-              backgroundColor: Brand.green700,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: Text(l.bookCleaning),
+      body: SafeArea(
+        child: IndexedStack(
+          index: _tab,
+          children: [
+            _HomeTab(
+              key: _homeKey,
+              onBook: () => _book(),
+              onService: (s) => _book(service: s),
+              onDetail: _detail,
             ),
+            _visited.contains(1)
+                ? _BookingsTab(
+                    key: _bookingsKey,
+                    onBook: () => _book(),
+                    onDetail: _detail,
+                  )
+                : const SizedBox.shrink(),
+            _visited.contains(2)
+                ? const _ProfileTab()
+                : const SizedBox.shrink(),
+          ],
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) {
-          setState(() => _tab = i);
+          if (_tab == i) return;
+          setState(() {
+            _tab = i;
+            _visited.add(i);
+          });
           if (i == 0) _homeKey.currentState?.reload();
           if (i == 1) _bookingsKey.currentState?.reload();
         },
         destinations: [
-          NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home), label: l.home),
           NavigationDestination(
-              icon: const Icon(Icons.receipt_long_outlined), selectedIcon: const Icon(Icons.receipt_long), label: l.bookings),
-          NavigationDestination(icon: const Icon(Icons.person_outline), selectedIcon: const Icon(Icons.person), label: l.profile),
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
+            label: l.home,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.receipt_long_outlined),
+            selectedIcon: const Icon(Icons.receipt_long),
+            label: l.bookings,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: l.profile,
+          ),
         ],
       ),
     );
   }
 }
 
-class _HomeTab extends StatelessWidget {
-  final GlobalKey<_BookingListState> listKey;
+class _HomeTab extends StatefulWidget {
   final VoidCallback onBook;
-  const _HomeTab({required this.listKey, required this.onBook});
+  final ValueChanged<Service> onService;
+  final ValueChanged<BookingSummary> onDetail;
+  const _HomeTab({
+    super.key,
+    required this.onBook,
+    required this.onService,
+    required this.onDetail,
+  });
+  @override
+  State<_HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<_HomeTab> {
+  List<Service>? _services;
+  List<BookingSummary>? _bookings;
+  Object? _error;
+  final _refresh = RefreshGate();
+  @override
+  void initState() {
+    super.initState();
+    reload();
+  }
+
+  Future<void> reload() => _refresh.run(() async {
+    try {
+      final repo = context.read<Repository>();
+      final data = await Future.wait([repo.services(), repo.bookings('all')]);
+      if (mounted) {
+        setState(() {
+          _services = data[0] as List<Service>;
+          _bookings = data[1] as List<BookingSummary>;
+          _error = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = e);
+    }
+  });
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final me = context.watch<AppState>().me;
-    return BookingList(
-      key: listKey,
-      scope: 'active',
-      header: Padding(
-        padding: const EdgeInsets.fromLTRB(4, 12, 4, 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l.hello(me?.firstName ?? ''), style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 6),
-            Text(l.homeSubtitle, style: const TextStyle(color: Brand.ink3)),
-            const SizedBox(height: 24),
-            Text(l.upcoming.toUpperCase(),
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: .6, color: Brand.ink3)),
+    final active =
+        (_bookings ?? [])
+            .where(
+              (b) => liveStatuses.contains(b.status) || b.status == 'DISPUTED',
+            )
+            .toList()
+          ..sort(
+            (a, b) =>
+                '${a.date}${a.startTime}'.compareTo('${b.date}${b.startTime}'),
+          );
+    return RefreshIndicator(
+      onRefresh: reload,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l.hello(me?.firstName ?? ''),
+                  style: const TextStyle(
+                    color: Brand.ink3,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: l.support,
+                onPressed: () => showSupportSheet(context),
+                icon: const Icon(Icons.help_outline),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l.chooseService,
+            style: Theme.of(context).textTheme.headlineMedium,
+          ),
+          const SizedBox(height: 8),
+          Text(l.homeSubtitle, style: const TextStyle(color: Brand.ink3)),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            key: const ValueKey('home-book'),
+            onPressed: widget.onBook,
+            icon: const Icon(Icons.add, size: 20),
+            label: Text(l.bookCleaning),
+          ),
+          const SizedBox(height: 20),
+          if (_error != null) ErrorRetry(error: _error!, onRetry: reload),
+          if (_services == null && _error == null)
+            LoadingState(l.loadingServices),
+          if (active.isNotEmpty) ...[
+            SectionHeader(l.activeBooking),
+            const SizedBox(height: 12),
+            SectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  BookingTile(
+                    booking: active.first,
+                    onTap: () => widget.onDetail(active.first),
+                    padded: false,
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () => widget.onDetail(active.first),
+                    child: Text(l.trackBooking),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 28),
           ],
-        ),
-      ),
-      empty: EmptyState(
-        icon: Icons.event_available_outlined,
-        title: l.noActive,
-        body: l.noActiveBody,
-        action: SizedBox(width: 220, child: FilledButton(onPressed: onBook, child: Text(l.bookCleaning))),
+          if (_services != null) ...[
+            SectionHeader(l.popularServices),
+            const SizedBox(height: 4),
+            for (final service in _services!) ...[
+              ServiceRow(
+                service: service,
+                onTap: () async {
+                  final choose = await showServiceSheet(context, service);
+                  if (choose == true && mounted) widget.onService(service);
+                },
+              ),
+              const Divider(),
+            ],
+          ],
+          const SizedBox(height: 28),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(Brand.radius),
+            child: Image.asset(
+              'assets/images/cleaning-professional.webp',
+              height: 170,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              cacheWidth: 800,
+              alignment: const Alignment(0, -.15),
+              semanticLabel: l.cleaningPhotoAlt,
+              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(l.howTitle, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(l.howBody, style: const TextStyle(color: Brand.ink2)),
+          const SizedBox(height: 16),
+          Text(
+            l.materialsIncluded,
+            style: const TextStyle(
+              color: Brand.green700,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _BookingsTab extends StatelessWidget {
-  final GlobalKey<_BookingListState> listKey;
-  const _BookingsTab({required this.listKey});
+class _BookingsTab extends StatefulWidget {
+  final VoidCallback onBook;
+  final ValueChanged<BookingSummary> onDetail;
+  const _BookingsTab({super.key, required this.onBook, required this.onDetail});
+  @override
+  State<_BookingsTab> createState() => _BookingsTabState();
+}
+
+class _BookingsTabState extends State<_BookingsTab> {
+  List<BookingSummary>? _bookings;
+  Object? _error;
+  final _refresh = RefreshGate();
+  int _filter = 0;
+  @override
+  void initState() {
+    super.initState();
+    reload();
+  }
+
+  Future<void> reload() => _refresh.run(() async {
+    try {
+      final data = await context.read<Repository>().bookings('all');
+      if (mounted) {
+        setState(() {
+          _bookings = data;
+          _error = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = e);
+    }
+  });
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return BookingList(
-      key: listKey,
-      scope: 'all',
-      header: Padding(
-        padding: const EdgeInsets.fromLTRB(4, 12, 4, 16),
-        child: Text(l.bookings, style: Theme.of(context).textTheme.headlineMedium),
-      ),
-      empty: EmptyState(icon: Icons.receipt_long_outlined, title: l.noHistory),
-    );
-  }
-}
-
-class BookingList extends StatefulWidget {
-  final String scope;
-  final Widget header;
-  final Widget empty;
-  const BookingList({super.key, required this.scope, required this.header, required this.empty});
-
-  @override
-  State<BookingList> createState() => _BookingListState();
-}
-
-class _BookingListState extends State<BookingList> {
-  late Future<List<BookingSummary>> _future;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = _load();
-  }
-
-  Future<List<BookingSummary>> _load() => context.read<Repository>().bookings(widget.scope);
-
-  void reload() => setState(() => _future = _load());
-
-  @override
-  Widget build(BuildContext context) {
+    final filtered = (_bookings ?? [])
+        .where(
+          (b) =>
+              _filter == 0 ||
+              (_filter == 1
+                  ? liveStatuses.contains(b.status) || b.status == 'DISPUTED'
+                  : !liveStatuses.contains(b.status) && b.status != 'DISPUTED'),
+        )
+        .toList();
     return RefreshIndicator(
-      color: Brand.green700,
-      onRefresh: () async {
-        reload();
-        await _future;
-      },
-      child: FutureBuilder<List<BookingSummary>>(
-        future: _future,
-        builder: (context, snap) {
-          final children = <Widget>[widget.header];
-          if (snap.connectionState != ConnectionState.done) {
-            children.add(const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator())));
-          } else if (snap.hasError) {
-            children.add(ErrorRetry(error: snap.error!, onRetry: reload));
-          } else if (snap.data!.isEmpty) {
-            children.add(Card(child: widget.empty));
-          } else {
-            children.add(Card(
-              child: Column(
+      onRefresh: reload,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+        itemCount: filtered.length + 1,
+        itemBuilder: (context, index) {
+          if (index > 0) {
+            return Column(
+              children: [
+                BookingTile(
+                  booking: filtered[index - 1],
+                  onTap: () => widget.onDetail(filtered[index - 1]),
+                ),
+                const Divider(),
+              ],
+            );
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l.bookings,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
                 children: [
-                  for (final (i, b) in snap.data!.indexed) ...[
-                    if (i > 0) const Divider(),
-                    BookingTile(
-                      booking: b,
-                      onTap: () async {
-                        await Navigator.of(context)
-                            .push(MaterialPageRoute(builder: (_) => BookingDetailScreen(bookingId: b.id)));
-                        reload();
-                      },
+                  for (final (i, label) in [
+                    l.allBookings,
+                    l.upcoming,
+                    l.pastBookings,
+                  ].indexed)
+                    ChoiceChip(
+                      label: Text(label),
+                      selected: _filter == i,
+                      onSelected: (_) => setState(() => _filter = i),
                     ),
-                  ],
                 ],
               ),
-            ));
-          }
-          children.add(const SizedBox(height: 96));
-          return ListView(padding: const EdgeInsets.symmetric(horizontal: 16), children: children);
+              const SizedBox(height: 12),
+              if (_error != null) ErrorRetry(error: _error!, onRetry: reload),
+              if (_bookings == null && _error == null)
+                LoadingState(l.loadingBookings),
+              if (_bookings != null && filtered.isEmpty)
+                EmptyState(
+                  icon: Icons.receipt_long_outlined,
+                  title: l.noFilteredBookings,
+                  body: l.noFilteredBody,
+                  action: OutlinedButton(
+                    onPressed: widget.onBook,
+                    child: Text(l.bookCleaning),
+                  ),
+                ),
+            ],
+          );
         },
       ),
     );
@@ -197,33 +406,65 @@ class _BookingListState extends State<BookingList> {
 class BookingTile extends StatelessWidget {
   final BookingSummary booking;
   final VoidCallback onTap;
-  const BookingTile({super.key, required this.booking, required this.onTap});
-
+  final bool padded;
+  const BookingTile({
+    super.key,
+    required this.booking,
+    required this.onTap,
+    this.padded = true,
+  });
   @override
   Widget build(BuildContext context) {
-    final locale = Localizations.localeOf(context).languageCode;
+    final lang = Localizations.localeOf(context).languageCode;
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(Brand.radius),
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+        padding: EdgeInsets.symmetric(vertical: padded ? 18 : 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ServiceBadge(booking.serviceIcon, size: 44),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(booking.serviceName(locale), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                  const SizedBox(height: 2),
-                  Text('${formatDate(context, booking.date)} · ${booking.startTime} · ${booking.areaName}',
-                      style: const TextStyle(color: Brand.ink3, fontSize: 13)),
-                  const SizedBox(height: 8),
-                  StatusChip(booking.status),
-                ],
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ServiceBadge(booking.serviceIcon, size: 40),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        booking.serviceName(lang),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${formatDate(context, booking.date)} · ${booking.startTime}',
+                        style: const TextStyle(color: Brand.ink3),
+                      ),
+                      Text(
+                        booking.areaName,
+                        style: const TextStyle(color: Brand.ink3),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, size: 20, color: Brand.ink3),
+              ],
             ),
-            Text(formatMoney(booking.total, booking.currency), style: const TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                StatusChip(booking.status),
+                Text(
+                  formatMoney(booking.total, booking.currency),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -233,49 +474,63 @@ class BookingTile extends StatelessWidget {
 
 class _ProfileTab extends StatelessWidget {
   const _ProfileTab();
-
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final state = context.watch<AppState>();
     final me = state.me;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 12, 4, 20),
-          child: Text(l.profile, style: Theme.of(context).textTheme.headlineMedium),
+        Text(l.profile, style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: 24),
+        Text(me?.fullName ?? '', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 8),
+        Text(
+          [me?.phone, me?.email].whereType<String>().join('\n'),
+          style: const TextStyle(color: Brand.ink3),
         ),
-        Card(
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            leading: CircleAvatar(
-              radius: 24,
-              backgroundColor: Brand.green100,
-              child: Text(
-                (me?.fullName ?? '?').split(' ').where((p) => p.isNotEmpty).take(2).map((p) => p[0]).join(),
-                style: const TextStyle(color: Brand.green900, fontWeight: FontWeight.w700),
-              ),
-            ),
-            title: Text(me?.fullName ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: Text([me?.phone, me?.email].whereType<String>().join('\n')),
-          ),
-        ),
+        const SizedBox(height: 28),
+        const Divider(),
+        const SizedBox(height: 24),
+        Text(l.language, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(child: Text(l.language, style: const TextStyle(fontWeight: FontWeight.w600))),
-                LanguageToggle(value: state.locale, onChanged: state.setLocale),
-              ],
-            ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: LanguageToggle(
+            value: state.locale,
+            onChanged: state.setLocale,
           ),
         ),
         const SizedBox(height: 24),
+        const Divider(),
+        const SizedBox(height: 12),
+        TextButton.icon(
+          onPressed: () => showSupportSheet(context),
+          icon: const Icon(Icons.help_outline),
+          label: Text(l.contactSupport),
+        ),
+        const SizedBox(height: 24),
         OutlinedButton.icon(
-          onPressed: state.logout,
+          onPressed: () async {
+            final logout = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: Text(l.signOutConfirm),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(l.staySignedIn),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(l.signOut),
+                  ),
+                ],
+              ),
+            );
+            if (logout == true) await state.logout();
+          },
           icon: const Icon(Icons.logout),
           label: Text(l.signOut),
         ),

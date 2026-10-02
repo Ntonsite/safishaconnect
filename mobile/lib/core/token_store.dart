@@ -11,13 +11,15 @@ class SecureTokenStore implements TokenStore {
   static const _key = 'safisha.refresh';
   final FlutterSecureStorage _storage;
 
-  SecureTokenStore([FlutterSecureStorage? storage]) : _storage = storage ?? const FlutterSecureStorage();
+  SecureTokenStore([FlutterSecureStorage? storage])
+    : _storage = storage ?? const FlutterSecureStorage();
 
   @override
   Future<String?> readRefreshToken() => _storage.read(key: _key);
 
   @override
-  Future<void> writeRefreshToken(String token) => _storage.write(key: _key, value: token);
+  Future<void> writeRefreshToken(String token) =>
+      _storage.write(key: _key, value: token);
 
   @override
   Future<void> clear() => _storage.delete(key: _key);

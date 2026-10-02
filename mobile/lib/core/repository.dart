@@ -9,7 +9,10 @@ class Repository {
 
   // --- Auth -------------------------------------------------------------------------
   Future<void> login(String identifier, String password) async {
-    final pair = await api.post('/auth/login', {'identifier': identifier, 'password': password}, false);
+    final pair = await api.post('/auth/login', {
+      'identifier': identifier,
+      'password': password,
+    }, false);
     await api.setSession(pair as Map<String, dynamic>);
   }
 
@@ -20,17 +23,13 @@ class Repository {
     required String password,
     required String locale,
   }) async {
-    final pair = await api.post(
-      '/auth/register',
-      {
-        'full_name': fullName,
-        'phone': phone,
-        'email': (email == null || email.isEmpty) ? null : email,
-        'password': password,
-        'preferred_locale': locale,
-      },
-      false,
-    );
+    final pair = await api.post('/auth/register', {
+      'full_name': fullName,
+      'phone': phone,
+      'email': (email == null || email.isEmpty) ? null : email,
+      'password': password,
+      'preferred_locale': locale,
+    }, false);
     await api.setSession(pair as Map<String, dynamic>);
   }
 
@@ -46,16 +45,22 @@ class Repository {
     }
   }
 
-  Future<void> updateLocale(String locale) => api.patch('/auth/me', {'preferred_locale': locale});
+  Future<void> updateLocale(String locale) =>
+      api.patch('/auth/me', {'preferred_locale': locale});
 
   // --- Catalogue --------------------------------------------------------------------
   Future<List<Service>> services() async =>
-      ((await api.get('/services', auth: false)) as List).map((j) => Service.fromJson(j)).toList();
+      ((await api.get('/services', auth: false)) as List)
+          .map((j) => Service.fromJson(j))
+          .toList();
 
   Future<List<Area>> areas() async =>
-      ((await api.get('/areas', auth: false)) as List).map((j) => Area.fromJson(j)).toList();
+      ((await api.get('/areas', auth: false)) as List)
+          .map((j) => Area.fromJson(j))
+          .toList();
 
-  Future<Map<String, dynamic>> config() async => await api.get('/config', auth: false) as Map<String, dynamic>;
+  Future<Map<String, dynamic>> config() async =>
+      await api.get('/config', auth: false) as Map<String, dynamic>;
 
   Future<Quote> quote(Map<String, dynamic> request) async =>
       Quote.fromJson(await api.post('/quotes', request, false));
@@ -66,32 +71,61 @@ class Repository {
     required String date,
     required int durationMinutes,
   }) async {
-    final data = await api.get('/availability', auth: false, query: {
-      'service_id': serviceId,
-      'area_id': areaId,
-      'date': date,
-      'duration_minutes': '$durationMinutes',
-    });
-    return ((data as Map)['slots'] as List).map((s) => Slot.fromJson(s)).toList();
+    final data = await api.get(
+      '/availability',
+      auth: false,
+      query: {
+        'service_id': serviceId,
+        'area_id': areaId,
+        'date': date,
+        'duration_minutes': '$durationMinutes',
+      },
+    );
+    return ((data as Map)['slots'] as List)
+        .map((s) => Slot.fromJson(s))
+        .toList();
   }
 
   // --- Bookings ---------------------------------------------------------------------
   Future<List<BookingSummary>> bookings(String scope) async =>
-      ((await api.get('/bookings', query: {'scope': scope})) as List).map((j) => BookingSummary.fromJson(j)).toList();
+      ((await api.get('/bookings', query: {'scope': scope})) as List)
+          .map((j) => BookingSummary.fromJson(j))
+          .toList();
 
-  Future<BookingDetail> booking(String id) async => BookingDetail.fromJson(await api.get('/bookings/$id'));
+  Future<BookingDetail> booking(String id) async =>
+      BookingDetail.fromJson(await api.get('/bookings/$id'));
 
-  Future<BookingDetail> createBooking(Map<String, dynamic> body) async =>
-      BookingDetail.fromJson(await api.post('/bookings', body));
+  Future<BookingDetail> createBooking(
+    Map<String, dynamic> body, {
+    String? requestKey,
+  }) async => BookingDetail.fromJson(
+    requestKey == null
+        ? await api.post('/bookings', body)
+        : await api.postOnce('/bookings', body, requestKey),
+  );
 
-  Future<BookingDetail> cancel(String id) async => BookingDetail.fromJson(await api.post('/bookings/$id/cancel', {}));
+  Future<BookingDetail> cancel(String id) async =>
+      BookingDetail.fromJson(await api.post('/bookings/$id/cancel', {}));
 
   Future<BookingDetail> confirmCompletion(String id) async =>
-      BookingDetail.fromJson(await api.post('/bookings/$id/confirm-completion'));
+      BookingDetail.fromJson(
+        await api.post('/bookings/$id/confirm-completion'),
+      );
 
   Future<void> review(String bookingId, int rating, String? comment) =>
-      api.post('/reviews', {'booking_id': bookingId, 'rating': rating, 'comment': comment});
+      api.post('/reviews', {
+        'booking_id': bookingId,
+        'rating': rating,
+        'comment': comment,
+      });
 
-  Future<void> reportIssue(String bookingId, String category, String description) =>
-      api.post('/complaints', {'booking_id': bookingId, 'category': category, 'description': description});
+  Future<void> reportIssue(
+    String bookingId,
+    String category,
+    String description,
+  ) => api.post('/complaints', {
+    'booking_id': bookingId,
+    'category': category,
+    'description': description,
+  });
 }

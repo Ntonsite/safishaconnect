@@ -1,5 +1,5 @@
 name: safishacon_mobile
-description: "A new Flutter project."
+description: "SafishaCon customer app for cleaning in Dar es Salaam."
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -21,7 +21,16 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  integration_test:
+    sdk: flutter
 
 flutter:
   generate: true
   uses-material-design: true
+
+  assets:
+    - assets/images/cleaning-professional.webp
+  fonts:
+    - family: DMSans
+      fonts:
+        - asset: assets/fonts/DMSans.ttf

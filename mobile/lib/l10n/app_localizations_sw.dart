@@ -69,7 +69,7 @@ class AppLocalizationsSw extends AppLocalizations {
   }
 
   @override
-  String get homeSubtitle => 'Hiki ndicho kinachoendelea na usafi wako.';
+  String get homeSubtitle => 'Usafi wa nyumba, kwa muda unaokufaa.';
 
   @override
   String get bookCleaning => 'Agiza usafi';
@@ -210,15 +210,14 @@ class AppLocalizationsSw extends AppLocalizations {
   }
 
   @override
-  String get bookingConfirmed =>
-      'Oda imethibitishwa — tunakutafutia msafishaji aliyethibitishwa.';
+  String get bookingConfirmed => 'Oda yako ya usafi imepokelewa';
 
   @override
   String get bookingReference => 'Namba ya oda';
 
   @override
   String get findingProvider =>
-      'Tunakutafutia msafishaji aliyethibitishwa. Fuatilia maendeleo hapa chini.';
+      'Tunakutafutia msafishaji aliyethibitishwa aliye tayari. Unaweza kufuatilia kila hatua ya oda yako.';
 
   @override
   String get progress => 'Maendeleo';
@@ -228,7 +227,7 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get awaitingCleaner =>
-      'Tunakuunganisha na msafishaji aliyethibitishwa. Kwa kawaida huchukua dakika chache.';
+      'Tunatafuta watoa huduma waliothibitishwa wanaopatikana eneo lako. Oda itasasishwa msafishaji akipokea kazi.';
 
   @override
   String get call => 'Piga simu';
@@ -249,11 +248,11 @@ class AppLocalizationsSw extends AppLocalizations {
   String get payment => 'Malipo';
 
   @override
-  String get confirmCompletion => 'Thibitisha kazi imekamilika';
+  String get confirmCompletion => 'Thibitisha kukamilika';
 
   @override
   String get confirmCompletionBody =>
-      'Umeridhika na usafi? Thibitisha ili tufunge oda.';
+      'Je, usafi umekamilika vizuri? Thibitisha hapa chini au tujulishe kama kuna tatizo.';
 
   @override
   String get reportIssue => 'Ripoti tatizo';
@@ -323,7 +322,8 @@ class AppLocalizationsSw extends AppLocalizations {
   String get genericError => 'Hitilafu imetokea. Tafadhali jaribu tena.';
 
   @override
-  String get networkError => 'Hatuwezi kufikia seva. Angalia mtandao wako.';
+  String get networkError =>
+      'Hatukuweza kuunganisha. Angalia mtandao wako na ujaribu tena.';
 
   @override
   String minutes(int count) {
@@ -384,7 +384,7 @@ class AppLocalizationsSw extends AppLocalizations {
   String get statusCUSTOMER_CONFIRMED => 'Kukamilika kumethibitishwa';
 
   @override
-  String get statusCLOSED => 'Imefungwa';
+  String get statusCLOSED => 'Imekamilika';
 
   @override
   String get statusCANCELLED => 'Imeghairiwa';
@@ -396,7 +396,7 @@ class AppLocalizationsSw extends AppLocalizations {
   String get statusDISPUTED => 'Tatizo linashughulikiwa';
 
   @override
-  String get paymentPENDING => 'Inasubiri';
+  String get paymentPENDING => 'Lipa baada ya usafi';
 
   @override
   String get paymentPAID => 'Imelipwa';
@@ -421,4 +421,239 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get included => 'Vimejumuishwa';
+
+  @override
+  String get popularServices => 'Huduma zetu za usafi';
+
+  @override
+  String get howTitle => 'Agiza. Tunakupangia. Tunasafisha.';
+
+  @override
+  String get howBody =>
+      'Chagua huduma na muda. Tunakupangia mtaalamu aliyethibitishwa anayekuja na vifaa. Lipa taslimu baada ya usafi.';
+
+  @override
+  String get activeBooking => 'Usafi wako ujao';
+
+  @override
+  String get trackBooking => 'Fuatilia oda';
+
+  @override
+  String get backHome => 'Rudi nyumbani';
+
+  @override
+  String get bookAgain => 'Agiza tena';
+
+  @override
+  String get allBookings => 'Zote';
+
+  @override
+  String get pastBookings => 'Zilizopita';
+
+  @override
+  String get noFilteredBookings => 'Bado hakuna oda hapa';
+
+  @override
+  String get noFilteredBody =>
+      'Oda zinazolingana na chaguo hili zitaonekana hapa.';
+
+  @override
+  String get loadingBookings => 'Tunapakia oda zako…';
+
+  @override
+  String get loadingServices => 'Tunapakia huduma za usafi…';
+
+  @override
+  String get loadingBooking => 'Tunapakia oda yako…';
+
+  @override
+  String get loadingSlots => 'Tunakagua muda unaopatikana…';
+
+  @override
+  String get updatingPrice => 'Tunasasisha bei yako…';
+
+  @override
+  String get confirmingBooking => 'Tunathibitisha oda yako…';
+
+  @override
+  String get serviceDetails => 'Kuhusu huduma hii';
+
+  @override
+  String get serviceIncludes => 'Kinachojumuishwa';
+
+  @override
+  String get selectService => 'Chagua huduma hii';
+
+  @override
+  String get locationTitle => 'Unahitaji usafi wapi?';
+
+  @override
+  String get locationHint => 'Chagua mtaa tunaohudumia Dar es Salaam.';
+
+  @override
+  String get addressHint => 'Mtaa, namba ya nyumba au ghorofa';
+
+  @override
+  String get addressValidation => 'Andika angalau herufi 3 kwa anwani yako.';
+
+  @override
+  String get instructionsHint =>
+      'Jinsi ya kuingia au sehemu inayohitaji uangalizi maalum';
+
+  @override
+  String get reviewBooking => 'Hakiki oda yako ya usafi';
+
+  @override
+  String get edit => 'Badili';
+
+  @override
+  String get confirmBookingLabel => 'Thibitisha oda';
+
+  @override
+  String get property => 'Makazi';
+
+  @override
+  String get paymentAfter => 'Taslimu — lipa baada ya usafi';
+
+  @override
+  String get findingTitle => 'Tunakutafutia mtaalamu wa usafi';
+
+  @override
+  String get assignedTitle => 'Msafishaji wako amethibitishwa';
+
+  @override
+  String get enRouteTitle => 'Msafishaji wako yuko njiani';
+
+  @override
+  String get arrivedTitle => 'Msafishaji wako amefika';
+
+  @override
+  String get inProgressTitle => 'Usafi unaendelea';
+
+  @override
+  String get completedTitle => 'Usafi umekamilika';
+
+  @override
+  String get assignedBody =>
+      'Mtaalamu wako amepangwa kwa tarehe na muda ulio hapa chini. Atakuja na vifaa na dawa zake za usafi.';
+
+  @override
+  String get enRouteBody =>
+      'Mtaalamu wako amejulisha kuwa yuko njiani kuelekea kwenye anwani yako.';
+
+  @override
+  String get arrivedBody =>
+      'Mtaalamu wako amejulisha kuwa amefika. Usafi utaanza baada ya hapo.';
+
+  @override
+  String get inProgressBody =>
+      'Mtaalamu wako anafanya usafi. Unaweza kufuatilia maendeleo hapa.';
+
+  @override
+  String get closedBody =>
+      'Usafi wako umekamilika. Asante kwa kuchagua SafishaCon.';
+
+  @override
+  String get cancelledBody =>
+      'Oda hii imeghairiwa. Unaweza kuagiza usafi mwingine ukiwa tayari.';
+
+  @override
+  String get disputedBody => 'Timu yetu inashughulikia tatizo uliloripoti.';
+
+  @override
+  String get refreshBooking => 'Sasisha oda';
+
+  @override
+  String get refreshFailed =>
+      'Hatukuweza kusasisha oda. Taarifa tulizopokea mwisho bado zinaonekana.';
+
+  @override
+  String get contactDetails => 'Taarifa za mawasiliano';
+
+  @override
+  String get copyNumber => 'Nakili namba';
+
+  @override
+  String get numberCopied => 'Namba ya simu imenakiliwa';
+
+  @override
+  String get support => 'Unahitaji msaada?';
+
+  @override
+  String get supportBody =>
+      'Kwa maswali kuhusu oda, wasiliana na SafishaCon kwa taarifa zilizo hapa chini.';
+
+  @override
+  String get contactSupport => 'Mawasiliano ya msaada';
+
+  @override
+  String get noSupportContact =>
+      'Mawasiliano ya msaada hayapatikani kwa sasa. Tafadhali jaribu tena baadaye.';
+
+  @override
+  String get accountDetails => 'Akaunti yako';
+
+  @override
+  String get signOutConfirm => 'Unataka kutoka kwenye SafishaCon?';
+
+  @override
+  String get staySignedIn => 'Endelea kutumia akaunti';
+
+  @override
+  String get showPassword => 'Onyesha nenosiri';
+
+  @override
+  String get hidePassword => 'Ficha nenosiri';
+
+  @override
+  String get loginFailed =>
+      'Angalia barua pepe au namba ya simu na nenosiri, kisha ujaribu tena.';
+
+  @override
+  String get sessionExpired =>
+      'Muda wa kutumia akaunti umeisha. Tafadhali ingia tena.';
+
+  @override
+  String get customersOnly =>
+      'Programu hii ni ya wateja. Watoa huduma na wasimamizi hutumia tovuti.';
+
+  @override
+  String get bookingUnavailable =>
+      'Oda hii haipatikani tena. Rudi kwenye oda zako na usasishe.';
+
+  @override
+  String get slotUnavailable =>
+      'Muda huu haupatikani tena. Chagua muda mwingine kabla ya kuthibitisha.';
+
+  @override
+  String get unsupportedArea =>
+      'Bado hatuhudumii eneo hili. Tafadhali chagua mtaa ulio kwenye orodha.';
+
+  @override
+  String get actionUnavailable =>
+      'Oda hii imebadilika. Isasishe kabla ya kujaribu tena.';
+
+  @override
+  String get accountExists =>
+      'Akaunti yenye mawasiliano haya tayari ipo. Jaribu kuingia.';
+
+  @override
+  String get invalidEmail => 'Weka barua pepe sahihi au acha sehemu hii wazi.';
+
+  @override
+  String get unknownStatus => 'Taarifa ya oda';
+
+  @override
+  String ratingLabel(int count) {
+    return 'Nyota $count kati ya 5';
+  }
+
+  @override
+  String get cleaningPhotoAlt => 'Mtaalamu wa usafi akisafisha dirisha.';
+
+  @override
+  String get startingApp => 'Tunaandaa SafishaCon…';
+
+  @override
+  String get selected => 'Imechaguliwa';
 }

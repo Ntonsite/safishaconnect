@@ -209,13 +209,13 @@ abstract class AppLocalizations {
   /// No description provided for @hello.
   ///
   /// In en, this message translates to:
-  /// **'Habari, {name}'**
+  /// **'Hello, {name}'**
   String hello(String name);
 
   /// No description provided for @homeSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Here\'s what\'s happening with your cleaning.'**
+  /// **'A clean home, on your schedule.'**
   String get homeSubtitle;
 
   /// No description provided for @bookCleaning.
@@ -485,7 +485,7 @@ abstract class AppLocalizations {
   /// No description provided for @bookingConfirmed.
   ///
   /// In en, this message translates to:
-  /// **'Booking confirmed — we\'re finding you a verified cleaner.'**
+  /// **'Your cleaning is booked'**
   String get bookingConfirmed;
 
   /// No description provided for @bookingReference.
@@ -497,7 +497,7 @@ abstract class AppLocalizations {
   /// No description provided for @findingProvider.
   ///
   /// In en, this message translates to:
-  /// **'We\'re finding a verified cleaner for you. Follow the progress below.'**
+  /// **'We\'re finding an available verified cleaner for you. You can track every step of your booking.'**
   String get findingProvider;
 
   /// No description provided for @progress.
@@ -515,7 +515,7 @@ abstract class AppLocalizations {
   /// No description provided for @awaitingCleaner.
   ///
   /// In en, this message translates to:
-  /// **'We\'re matching you with a verified cleaner. This usually takes a few minutes.'**
+  /// **'We\'re checking verified providers available in your area. Your booking will update when a cleaner accepts.'**
   String get awaitingCleaner;
 
   /// No description provided for @call.
@@ -557,13 +557,13 @@ abstract class AppLocalizations {
   /// No description provided for @confirmCompletion.
   ///
   /// In en, this message translates to:
-  /// **'Confirm job completed'**
+  /// **'Confirm completion'**
   String get confirmCompletion;
 
   /// No description provided for @confirmCompletionBody.
   ///
   /// In en, this message translates to:
-  /// **'Happy with the cleaning? Confirm so we can close the booking.'**
+  /// **'Has your cleaning been completed successfully? Confirm below or let us know about a problem.'**
   String get confirmCompletionBody;
 
   /// No description provided for @reportIssue.
@@ -701,7 +701,7 @@ abstract class AppLocalizations {
   /// No description provided for @networkError.
   ///
   /// In en, this message translates to:
-  /// **'We can\'t reach the server. Check your connection.'**
+  /// **'We couldn\'t connect. Check your internet connection and try again.'**
   String get networkError;
 
   /// No description provided for @minutes.
@@ -785,7 +785,7 @@ abstract class AppLocalizations {
   /// No description provided for @statusCLOSED.
   ///
   /// In en, this message translates to:
-  /// **'Closed'**
+  /// **'Completed'**
   String get statusCLOSED;
 
   /// No description provided for @statusCANCELLED.
@@ -809,7 +809,7 @@ abstract class AppLocalizations {
   /// No description provided for @paymentPENDING.
   ///
   /// In en, this message translates to:
-  /// **'Pending'**
+  /// **'Pay after cleaning'**
   String get paymentPENDING;
 
   /// No description provided for @paymentPAID.
@@ -859,6 +859,432 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Included'**
   String get included;
+
+  /// No description provided for @popularServices.
+  ///
+  /// In en, this message translates to:
+  /// **'Our cleaning services'**
+  String get popularServices;
+
+  /// No description provided for @howTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Book. We assign. We clean.'**
+  String get howTitle;
+
+  /// No description provided for @howBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your service and time. We assign a verified professional who brings the equipment. Pay in cash after cleaning.'**
+  String get howBody;
+
+  /// No description provided for @activeBooking.
+  ///
+  /// In en, this message translates to:
+  /// **'Your next cleaning'**
+  String get activeBooking;
+
+  /// No description provided for @trackBooking.
+  ///
+  /// In en, this message translates to:
+  /// **'Track booking'**
+  String get trackBooking;
+
+  /// No description provided for @backHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to home'**
+  String get backHome;
+
+  /// No description provided for @bookAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Book again'**
+  String get bookAgain;
+
+  /// No description provided for @allBookings.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allBookings;
+
+  /// No description provided for @pastBookings.
+  ///
+  /// In en, this message translates to:
+  /// **'Past'**
+  String get pastBookings;
+
+  /// No description provided for @noFilteredBookings.
+  ///
+  /// In en, this message translates to:
+  /// **'No bookings here yet'**
+  String get noFilteredBookings;
+
+  /// No description provided for @noFilteredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your bookings will appear here when they match this filter.'**
+  String get noFilteredBody;
+
+  /// No description provided for @loadingBookings.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading your bookings…'**
+  String get loadingBookings;
+
+  /// No description provided for @loadingServices.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading cleaning services…'**
+  String get loadingServices;
+
+  /// No description provided for @loadingBooking.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading your booking…'**
+  String get loadingBooking;
+
+  /// No description provided for @loadingSlots.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking available times…'**
+  String get loadingSlots;
+
+  /// No description provided for @updatingPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating your price…'**
+  String get updatingPrice;
+
+  /// No description provided for @confirmingBooking.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirming your booking…'**
+  String get confirmingBooking;
+
+  /// No description provided for @serviceDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'About this cleaning'**
+  String get serviceDetails;
+
+  /// No description provided for @serviceIncludes.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s included'**
+  String get serviceIncludes;
+
+  /// No description provided for @selectService.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose this service'**
+  String get selectService;
+
+  /// No description provided for @locationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Where do you need cleaning?'**
+  String get locationTitle;
+
+  /// No description provided for @locationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a supported neighbourhood in Dar es Salaam.'**
+  String get locationHint;
+
+  /// No description provided for @addressHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Street, house or apartment number'**
+  String get addressHint;
+
+  /// No description provided for @addressValidation.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least 3 characters for your address.'**
+  String get addressValidation;
+
+  /// No description provided for @instructionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Gate access or anything that needs special attention'**
+  String get instructionsHint;
+
+  /// No description provided for @reviewBooking.
+  ///
+  /// In en, this message translates to:
+  /// **'Review your cleaning'**
+  String get reviewBooking;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @confirmBookingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm booking'**
+  String get confirmBookingLabel;
+
+  /// No description provided for @property.
+  ///
+  /// In en, this message translates to:
+  /// **'Property'**
+  String get property;
+
+  /// No description provided for @paymentAfter.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash — pay after cleaning'**
+  String get paymentAfter;
+
+  /// No description provided for @findingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding your cleaning professional'**
+  String get findingTitle;
+
+  /// No description provided for @assignedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cleaner is confirmed'**
+  String get assignedTitle;
+
+  /// No description provided for @enRouteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cleaner is on the way'**
+  String get enRouteTitle;
+
+  /// No description provided for @arrivedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cleaner has arrived'**
+  String get arrivedTitle;
+
+  /// No description provided for @inProgressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleaning in progress'**
+  String get inProgressTitle;
+
+  /// No description provided for @completedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleaning completed'**
+  String get completedTitle;
+
+  /// No description provided for @assignedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your professional is assigned for the date and time below. They bring their own equipment and materials.'**
+  String get assignedBody;
+
+  /// No description provided for @enRouteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your professional has marked that they are travelling to your address.'**
+  String get enRouteBody;
+
+  /// No description provided for @arrivedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your professional has marked their arrival. Cleaning will begin next.'**
+  String get arrivedBody;
+
+  /// No description provided for @inProgressBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your professional is working on your cleaning. You can check progress here.'**
+  String get inProgressBody;
+
+  /// No description provided for @closedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cleaning is complete. Thank you for choosing SafishaCon.'**
+  String get closedBody;
+
+  /// No description provided for @cancelledBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This booking was cancelled. You can book another cleaning whenever you are ready.'**
+  String get cancelledBody;
+
+  /// No description provided for @disputedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Our team is reviewing the issue you reported.'**
+  String get disputedBody;
+
+  /// No description provided for @refreshBooking.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh booking'**
+  String get refreshBooking;
+
+  /// No description provided for @refreshFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t update the booking. The last received information is still shown.'**
+  String get refreshFailed;
+
+  /// No description provided for @contactDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact details'**
+  String get contactDetails;
+
+  /// No description provided for @copyNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy number'**
+  String get copyNumber;
+
+  /// No description provided for @numberCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number copied'**
+  String get numberCopied;
+
+  /// No description provided for @support.
+  ///
+  /// In en, this message translates to:
+  /// **'Need help?'**
+  String get support;
+
+  /// No description provided for @supportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'For booking questions, contact SafishaCon using the details below.'**
+  String get supportBody;
+
+  /// No description provided for @contactSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Support contact details'**
+  String get contactSupport;
+
+  /// No description provided for @noSupportContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Support contact details are currently unavailable. Please try again later.'**
+  String get noSupportContact;
+
+  /// No description provided for @accountDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account'**
+  String get accountDetails;
+
+  /// No description provided for @signOutConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out of SafishaCon?'**
+  String get signOutConfirm;
+
+  /// No description provided for @staySignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay signed in'**
+  String get staySignedIn;
+
+  /// No description provided for @showPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get showPassword;
+
+  /// No description provided for @hidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get hidePassword;
+
+  /// No description provided for @loginFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email or phone number and password, then try again.'**
+  String get loginFailed;
+
+  /// No description provided for @sessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session ended. Please sign in again.'**
+  String get sessionExpired;
+
+  /// No description provided for @customersOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'This app is for customers. Providers and administrators use the web portal.'**
+  String get customersOnly;
+
+  /// No description provided for @bookingUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This booking is no longer available. Return to your bookings and refresh.'**
+  String get bookingUnavailable;
+
+  /// No description provided for @slotUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This time is no longer available. Choose another time before confirming.'**
+  String get slotUnavailable;
+
+  /// No description provided for @unsupportedArea.
+  ///
+  /// In en, this message translates to:
+  /// **'We don\'t serve this area yet. Please choose one of the listed neighbourhoods.'**
+  String get unsupportedArea;
+
+  /// No description provided for @actionUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This booking has changed. Refresh it before trying again.'**
+  String get actionUnavailable;
+
+  /// No description provided for @accountExists.
+  ///
+  /// In en, this message translates to:
+  /// **'An account with these contact details already exists. Try signing in.'**
+  String get accountExists;
+
+  /// No description provided for @invalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address or leave it blank.'**
+  String get invalidEmail;
+
+  /// No description provided for @unknownStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Booking update'**
+  String get unknownStatus;
+
+  /// No description provided for @ratingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} out of 5 stars'**
+  String ratingLabel(int count);
+
+  /// No description provided for @cleaningPhotoAlt.
+  ///
+  /// In en, this message translates to:
+  /// **'A cleaning professional wiping a window.'**
+  String get cleaningPhotoAlt;
+
+  /// No description provided for @startingApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing SafishaCon…'**
+  String get startingApp;
+
+  /// No description provided for @selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected'**
+  String get selected;
 }
 
 class _AppLocalizationsDelegate

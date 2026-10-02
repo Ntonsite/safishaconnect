@@ -29,8 +29,11 @@ class ApiClient {
   Future<bool>? _refreshing;
   void Function()? onSessionExpired;
 
-  ApiClient({required this.baseUrl, required this.tokens, http.Client? httpClient})
-      : _http = httpClient ?? http.Client();
+  ApiClient({
+    required this.baseUrl,
+    required this.tokens,
+    http.Client? httpClient,
+  }) : _http = httpClient ?? http.Client();
 
   bool get hasAccessToken => _accessToken != null;
 
@@ -44,27 +47,48 @@ class ApiClient {
     await tokens.clear();
   }
 
-  Uri _uri(String path, [Map<String, String>? query]) =>
-      Uri.parse('$baseUrl/api/v1$path').replace(queryParameters: query?.isEmpty ?? true ? null : query);
+  Uri _uri(String path, [Map<String, String>? query]) => Uri.parse(
+    '$baseUrl/api/v1$path',
+  ).replace(queryParameters: query?.isEmpty ?? true ? null : query);
 
-  Future<dynamic> get(String path, {Map<String, String>? query, bool auth = true}) =>
-      _send('GET', path, query: query, auth: auth);
+  Future<dynamic> get(
+    String path, {
+    Map<String, String>? query,
+    bool auth = true,
+  }) => _send('GET', path, query: query, auth: auth);
 
-  Future<dynamic> post(String path, [Object? body, bool auth = true]) => _send('POST', path, body: body ?? {}, auth: auth);
+  Future<dynamic> post(String path, [Object? body, bool auth = true]) =>
+      _send('POST', path, body: body ?? {}, auth: auth);
 
-  Future<dynamic> patch(String path, Object body) => _send('PATCH', path, body: body);
+  Future<dynamic> postOnce(String path, Object body, String requestKey) =>
+      _send('POST', path, body: body, headers: {'Idempotency-Key': requestKey});
 
-  Future<dynamic> _send(String method, String path,
-      {Map<String, String>? query, Object? body, bool auth = true}) async {
+  Future<dynamic> patch(String path, Object body) =>
+      _send('PATCH', path, body: body);
+
+  Future<dynamic> _send(
+    String method,
+    String path, {
+    Map<String, String>? query,
+    Object? body,
+    bool auth = true,
+    Map<String, String>? headers,
+  }) async {
     Future<http.Response> attempt() {
       final request = http.Request(method, _uri(path, query));
       request.headers['Accept'] = 'application/json';
+      if (headers != null) request.headers.addAll(headers);
       if (body != null) {
         request.headers['Content-Type'] = 'application/json';
         request.body = jsonEncode(body);
       }
-      if (auth && _accessToken != null) request.headers['Authorization'] = 'Bearer $_accessToken';
-      return _http.send(request).then(http.Response.fromStream).timeout(const Duration(seconds: 20));
+      if (auth && _accessToken != null) {
+        request.headers['Authorization'] = 'Bearer $_accessToken';
+      }
+      return _http
+          .send(request)
+          .then(http.Response.fromStream)
+          .timeout(const Duration(seconds: 20));
     }
 
     http.Response response;
@@ -87,7 +111,9 @@ class ApiClient {
     final text = utf8.decode(response.bodyBytes);
     final data = text.isEmpty ? null : jsonDecode(text);
     if (response.statusCode >= 200 && response.statusCode < 300) return data;
-    final error = (data is Map && data['error'] is Map) ? data['error'] as Map : const {};
+    final error = (data is Map && data['error'] is Map)
+        ? data['error'] as Map
+        : const {};
     throw ApiException(
       response.statusCode,
       (error['code'] ?? 'HTTP_ERROR') as String,
@@ -101,16 +127,20 @@ class ApiClient {
       try {
         final stored = await tokens.readRefreshToken();
         if (stored == null) return false;
-        final response = await _http.post(
-          _uri('/auth/refresh'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'refresh_token': stored}),
-        );
+        final response = await _http
+            .post(
+              _uri('/auth/refresh'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({'refresh_token': stored}),
+            )
+            .timeout(const Duration(seconds: 20));
         if (response.statusCode != 200) {
           await clearSession();
           return false;
         }
-        await setSession(jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>);
+        await setSession(
+          jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
+        );
         return true;
       } catch (_) {
         return false;
