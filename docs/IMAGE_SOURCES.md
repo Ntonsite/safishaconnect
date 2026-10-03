@@ -1,54 +1,36 @@
 # SafishaCon photography sources
 
-Retrieved and license pages reviewed: **2026-10-01**. All production photographs are local WebP assets in `web/src/assets/images/brand/`. References and responsive variants are centralized in `web/src/config/imagery.ts`.
+Reviewed **2026-10-03**. All current photos have documented Tanzanian locations except the permitted Nairobi apartment fallback. Photos are served locally. Original contributor pages establish location; visual suitability was checked separately.
 
-## Selected launch photography
-
-| Asset | Original source / creator | Usage basis | SafishaCon placement |
+| Source / creator | Documented location | Placement / asset | Licence |
 |---|---|---|---|
-| `hero-professional-cleaning-*.webp` (including mobile variants) | [Woman Wearing a Jumper Cleaning a Glass Window](https://www.pexels.com/photo/woman-wearing-a-jumper-cleaning-a-glass-window-6197114/), **Tima Miroshnichenko**, Pexels photo 6197114; original 3753 ? 5629 | [Pexels License](https://www.pexels.com/license/): free website/commercial use and modification; attribution optional. No endorsement, offensive portrayal, trademark use or stock redistribution. | Landing hero; general illustrative brand photography. The source establishes neither Tanzania nor East Africa. The depicted person is **not identified as a SafishaCon provider**. |
-| `dar-es-salaam-*.webp` | [A city with many buildings](https://unsplash.com/photos/a-city-with-many-buildings-y1bnAADWAqk), **Okra Amps (@oamps12)**, Unsplash. Source caption: ?Shot from Reagent Estate?; explicit location Dar es Salaam, Tanzania; published 2022-06-11 | [Unsplash License](https://unsplash.com/license/): free commercial use, downloading and modification; attribution optional. No sale of unmodified images or competing image collection. | Landing service areas; caption identifies the city only. It does not claim pictured buildings are customers or that the view depicts every listed neighbourhood. |
+| [Patterned chairs, 1350789](https://www.pexels.com/photo/two-assorted-color-padded-chairs-near-side-table-1350789/), ERIC MUFASA | Dar es Salaam, Tanzania | Web `hero-dar-interior-*.webp`; Flutter `home/dar-living-room.webp`: Home, peaceful onboarding, general and sofa services | [Pexels](https://www.pexels.com/license/) |
+| [CySuites apartment, 76JYlSoAYM4](https://unsplash.com/photos/a-living-room-with-a-couch-and-a-table-76JYlSoAYM4), Cytonn Photography | Westlands, Nairobi, Kenya | Flutter `onboarding/nairobi-apartment.webp`: introduction, auth, deep cleaning and move-in service illustrations | [Unsplash](https://unsplash.com/license) |
+| [Bean there café, ztJM6VK6J9g](https://unsplash.com/photos/white-pendant-lamp-turned-on-in-room-ztJM6VK6J9g), Jabber Visuals | Dar es Salaam, Tanzania | Flutter `services/dar-workspace.webp`: professionals introduction and office service illustration | [Unsplash](https://unsplash.com/license) |
+| [City view, y1bnAADWAqk](https://unsplash.com/photos/a-city-with-many-buildings-y1bnAADWAqk), Okra Amps | Dar es Salaam, Tanzania; caption “Shot from Reagent Estate” | Existing web `dar-es-salaam-*.webp`: service areas | [Unsplash](https://unsplash.com/license) |
 
-Download URLs used for high-resolution working copies:
-- Hero: `https://images.pexels.com/photos/6197114/pexels-photo-6197114.jpeg?auto=compress&cs=tinysrgb&w=1800`
+These licences permit commercial use and modification without mandatory attribution. Credit is retained here. No implied endorsement, invented identities or claims that these are SafishaCon properties are made. The café is a local commercial interior illustration, not a photographed customer office. Nairobi is not labelled Tanzanian.
+
+## Download references
+
+- Chairs: `https://images.pexels.com/photos/1350789/pexels-photo-1350789.jpeg?auto=compress&cs=tinysrgb&w=1600`
+- Apartment: `https://images.unsplash.com/photo-1658218635253-64728f6234be?auto=format&fit=max&w=1800&q=85`
+- Workspace: `https://images.unsplash.com/photo-1614161980860-7d69a5292dab?auto=format&fit=max&w=1800&q=85`
 - City: `https://images.unsplash.com/photo-1654941348480-217757d5f933?auto=format&fit=max&w=2000&q=85`
 
-No watermarks, generative alterations, invented identities, portraits in testimonials, or competitor images are used. These are launch illustrations; commission original local photography using the accompanying shoot guide.
+## Preparation
 
-## Research and curation
+EXIF orientation normalization, RGB conversion, Lanczos crops and WebP quality 82, method 6 for new assets. Natural colour retained; no generated content, retouching or composites.
 
-Research covered Tanzanian cleaning professionals, Dar apartments/interiors/offices, East African cleaning teams, Black cleaning professionals, equipment details, and Dar urban photography. Local cleaning-company and social-media images lacked transferable permission and were not downloaded. Paid stock without an acquired license, AI imagery, safari imagery, low-resolution city imagery, and cold-climate interiors were excluded.
+- Flutter: room 1200 × 768, 67,976 bytes; apartment 1080 × 900, 70,618 bytes; workspace 960 × 1200, 41,092 bytes. Total **179,686 bytes (175.5 KiB)** shared across placements. Editorial decode width 960; thumbnail width 264. Opening and adjacent onboarding images are precached.
+- Web: desktop 480/800/1200 wide, 4:5 crops favouring green chair/table; mobile 480/800 wide, 4:3 retaining both chairs. Prepared from a 3200 × 2046 working copy without upscaling. Five new variants total **241,254 bytes**; browser selects one. Existing city variants retain 16:9. Intrinsic sizes, srcsets, async decoding, hero fetch priority and lazy city loading remain.
+- Central maps: `web/src/config/imagery.ts` and `mobile/lib/ui/widgets/editorial_photo.dart`. EN/SW descriptions match subjects.
+- Flutter DM Sans remains bundled with `mobile/assets/fonts/OFL.txt` (SIL Open Font License).
 
-The final direction uses a deliberate monochrome editorial hero with quiet green UI; the daylight city photograph is a documentary location cue. Text sits beside images. Services, process, trust and provider types retain their informative icons. Provider recruitment was evaluated: the available team image had a visibly foreign timber house and winter surroundings, so it was rejected. No extra photograph was forced into recruitment, final CTA, authenticated dashboards or booking forms.
+## Rejected / withdrawn imagery
 
-### Downloaded research candidates (not shipped)
+Earlier Pexels 6197114 hero and proposed Option 4 photos 6196582, 10161225, 6044718, 6197050, 380769 and 4401538 are withdrawn. Their sources do not establish Tanzania/East Africa; 380769 identifies Berlin. Their application assets, including the unused old Flutter image, are removed. Historical screenshots may show prior designs.
 
-All were retrieved 2026-10-01 for inspection. Pexels candidates share the [Pexels License](https://www.pexels.com/license/). Temporary previews are research-only; no app references them.
+Research covered Tanzanian/Kenyan cleaners, equipment, offices and homes. Competitor/social images lacked transferable permission. Unlicensed paid stock, AI imagery, foreign winter homes, beach cleanup, street shoe cleaning and industrial sanitation were rejected.
 
-| Source page | Creator | Decision |
-|---|---|---|
-| [Black woman wiping table, 5331102](https://www.pexels.com/photo/black-woman-wiping-table-with-napkin-in-morning-5331102/) | Monstera Production | Rejected: casual cropped clothing and incomplete professional context. |
-| [Woman cleaning her living room, 6197050](https://www.pexels.com/photo/woman-cleaning-her-living-room-6197050/) | Tima Miroshnichenko | Rejected: cold-climate fireplace setting. |
-| [Cleaners walking with equipment, 6196677](https://www.pexels.com/photo/cleaners-walking-while-holding-cleaning-equipment-6196677/) | Tima Miroshnichenko | Rejected: winter setting and foreign residential architecture. |
-| [Woman cleaning the house, 6195198](https://www.pexels.com/photo/woman-cleaning-the-house-6195198/) | Tima Miroshnichenko | Rejected: fireplace / winter interior. |
-| [Woman in gray shirt wiping window, 6195281](https://www.pexels.com/photo/woman-in-gray-shirt-wiping-the-glass-window-6195281/) | Tima Miroshnichenko | Rejected: a better representation match was available. |
-| [Person cleaning bathroom sink, 4098576](https://www.pexels.com/photo/person-cleaning-the-bathroom-sink-4098576/) | Matilda Wormwood | Rejected: pandemic/hazmat visual language. |
-| [Window cleaning, 6197114](https://www.pexels.com/photo/woman-wearing-a-jumper-cleaning-a-glass-window-6197114/) | Tima Miroshnichenko | Selected; two preview resolutions of the same photograph were inspected. |
-
-## Asset preparation and replacement
-
-Pillow EXIF orientation normalization, RGB conversion, Lanczos resizing and WebP quality 80 (hero) / 78 (city), method 6. No upscaling. Originals are not served.
-
-- Desktop hero: 4:5 crop from the source at 10% of its height, widths 480/800/1200. Face and cleaning action remain visible; the bucket is partially visible at the lower edge.
-- Mobile/tablet hero: 4:3 crop from 24% of source height, widths 480/800; focus is face and cleaning action. CTA precedes the photograph.
-- City: original 16:9 composition, widths 480/800/1200.
-- Explicit intrinsic dimensions and matching CSS aspect ratios reserve space. Hero uses `fetchPriority="high"`; city uses `loading="lazy"`; both decode asynchronously. No runtime external photo requests.
-- Total eight variants: approximately 448 KiB; a browser selects one hero and one city variant, rather than downloading all eight. Typical 1× mobile selection is about 44 KB combined; desktop about 122 KB combined (image bytes only). High density screens may select larger files.
-
-When replacing imagery, update the central config, source register, dimensions, localized alt text and intentional desktop/mobile crops together. Retain releases from actual providers, customers and property owners.
-
-## Flutter customer app (2026-10-02)
-
-`mobile/assets/images/cleaning-professional.webp` reuses the licensed Pexels 6197114 mobile crop (21,520 bytes) below the home service list. It remains illustrative photography, without a Tanzania location or SafishaCon provider identity claim. Provider summaries use initials and actual API profile data.
-
-DM Sans is bundled at `mobile/assets/fonts/DMSans.ttf` (240,164 bytes), sourced from the Google Fonts `ofl/dmsans` repository. Its SIL Open Font License is included beside it as `OFL.txt`. No font CDN is required at runtime.
+**Remaining photography gap:** no suitable high-quality, freely licensed Tanzanian/East African housecleaner photograph was verified. The professionals introduction uses the verified Dar commercial interior; it must not be described as showing a cleaner at work. A future licensed local team photo can replace this slot without layout changes. See the existing local photography shoot guide.

@@ -13,6 +13,7 @@ import 'package:safishacon_mobile/state/app_state.dart';
 import 'package:safishacon_mobile/ui/screens/booking_flow_screen.dart';
 import 'package:safishacon_mobile/ui/screens/auth_screens.dart';
 import 'package:safishacon_mobile/ui/screens/home_screens.dart';
+import 'package:safishacon_mobile/ui/screens/onboarding_screen.dart';
 import 'package:safishacon_mobile/ui/theme.dart';
 import 'package:safishacon_mobile/ui/widgets/common.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -105,6 +106,14 @@ void main() {
               ),
             );
             final l = lookupAppLocalizations(Locale(lang));
+            await tester.pumpWidget(app(const OnboardingScreen()));
+            await tester.pumpAndSettle();
+            expect(tester.takeException(), isNull);
+            for (var i = 0; i < 2; i++) {
+              await tester.tap(find.byKey(const ValueKey('onboarding-next')));
+              await tester.pumpAndSettle();
+              expect(tester.takeException(), isNull);
+            }
             await tester.pumpWidget(app(const LoginScreen()));
             await tester.pumpAndSettle();
             expect(tester.takeException(), isNull);

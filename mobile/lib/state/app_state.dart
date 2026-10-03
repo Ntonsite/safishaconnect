@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,6 +16,7 @@ class AppState extends ChangeNotifier {
   Me? me;
   Locale locale;
   bool demoMode = false;
+  bool onboardingCompleted = false;
   Map<String, dynamic> brand = {};
 
   /// Demo customer credentials, only served by the API when DEMO_MODE is on.
@@ -29,6 +32,17 @@ class AppState extends ChangeNotifier {
   }
 
   static const _localeKey = 'safisha.locale';
+  static const onboardingKey = 'safisha.onboarding.completed';
+
+  Future<void> completeOnboarding() async {
+    if (onboardingCompleted) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(onboardingKey, true);
+    } catch (_) {}
+    onboardingCompleted = true;
+    notifyListeners();
+  }
 
   static Future<Locale> savedLocale() async {
     try {
@@ -40,6 +54,31 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> bootstrap() async {
+    try {
+      onboardingCompleted =
+          (await SharedPreferences.getInstance()).getBool(onboardingKey) ??
+          false;
+    } catch (_) {}
+    // Optional public configuration must never delay an offline first launch.
+    unawaited(_loadConfig());
+    try {
+      final hadSession = await repo.api.tokens.readRefreshToken() != null;
+      if (hadSession) await completeOnboarding();
+      if (await repo.api.refresh()) {
+        me = await repo.me();
+        status = me!.role == 'CUSTOMER'
+            ? AuthStatus.signedIn
+            : AuthStatus.signedOut;
+      } else {
+        status = AuthStatus.signedOut;
+      }
+    } catch (_) {
+      status = AuthStatus.signedOut;
+    }
+    notifyListeners();
+  }
+
+  Future<void> _loadConfig() async {
     try {
       final config = await repo.config();
       brand = Map<String, dynamic>.from(config['brand'] as Map? ?? {});
@@ -53,18 +92,6 @@ class AppState extends ChangeNotifier {
         }
       }
     } catch (_) {}
-    try {
-      if (await repo.api.refresh()) {
-        me = await repo.me();
-        status = me!.role == 'CUSTOMER'
-            ? AuthStatus.signedIn
-            : AuthStatus.signedOut;
-      } else {
-        status = AuthStatus.signedOut;
-      }
-    } catch (_) {
-      status = AuthStatus.signedOut;
-    }
     notifyListeners();
   }
 
@@ -101,6 +128,7 @@ class AppState extends ChangeNotifier {
       );
     }
     me = profile;
+    await completeOnboarding();
     status = AuthStatus.signedIn;
     await setLocale(Locale(profile.preferredLocale), persistRemote: false);
     notifyListeners();

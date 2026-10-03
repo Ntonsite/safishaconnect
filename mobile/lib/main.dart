@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
@@ -10,6 +11,7 @@ import 'l10n/app_localizations.dart';
 import 'state/app_state.dart';
 import 'ui/screens/auth_screens.dart';
 import 'ui/screens/home_screens.dart';
+import 'ui/screens/onboarding_screen.dart';
 import 'ui/theme.dart';
 
 Future<void> main() async {
@@ -38,10 +40,20 @@ class SafishaApp extends StatelessWidget {
       ],
       child: Consumer<AppState>(
         builder: (context, app, _) => MaterialApp(
-          key: ValueKey(app.status),
+          key: ValueKey((app.status, app.onboardingCompleted)),
           title: AppConfig.appName,
           debugShowCheckedModeBanner: false,
           theme: buildTheme(),
+          builder: (_, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+            value: const SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.dark,
+              statusBarBrightness: Brightness.light,
+              systemNavigationBarColor: Colors.white,
+              systemNavigationBarIconBrightness: Brightness.dark,
+            ),
+            child: child!,
+          ),
           locale: app.locale,
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: const [
@@ -52,7 +64,10 @@ class SafishaApp extends StatelessWidget {
           ],
           home: switch (app.status) {
             AuthStatus.unknown => const _Splash(),
-            AuthStatus.signedOut => const LoginScreen(),
+            AuthStatus.signedOut =>
+              app.onboardingCompleted
+                  ? const LoginScreen()
+                  : const OnboardingScreen(),
             AuthStatus.signedIn => const HomeShell(),
           },
         ),

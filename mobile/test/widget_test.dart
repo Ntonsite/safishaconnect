@@ -30,7 +30,10 @@ AppState _state(Locale locale) {
 }
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(
+    () =>
+        SharedPreferences.setMockInitialValues({AppState.onboardingKey: true}),
+  );
 
   testWidgets('signed-out users see the localized login screen', (
     tester,

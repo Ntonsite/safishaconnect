@@ -659,4 +659,82 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selected => 'Selected';
+
+  @override
+  String get homeHeadline => 'Clean spaces.\nBrighter days.';
+
+  @override
+  String get homePromise => 'Your space, cared for. Your time, freed up.';
+
+  @override
+  String get homeEyebrow => 'A LITTLE MORE TIME FOR YOU';
+
+  @override
+  String get serviceCity => 'Dar es Salaam';
+
+  @override
+  String get verifiedProfessionals => 'Verified providers';
+
+  @override
+  String get equipmentIncluded => 'Equipment included';
+
+  @override
+  String get transparentPricing => 'Clear pricing';
+
+  @override
+  String get quickStartBody =>
+      'Choose a service and a time. We take care of the assignment.';
+
+  @override
+  String get onboardingOutcomeTitle => 'A cleaner home, without the hassle.';
+
+  @override
+  String get onboardingOutcomeBody =>
+      'Book your cleaning in a few taps. Make room for the things you love.';
+
+  @override
+  String get onboardingProfessionalTitle =>
+      'Trusted professionals. Ready to clean.';
+
+  @override
+  String get onboardingProfessionalBody =>
+      'We assign an eligible, verified provider who brings the equipment and cleaning materials.';
+
+  @override
+  String get onboardingPeaceTitle => 'Book. Relax.\nWe’ll handle the rest.';
+
+  @override
+  String get onboardingPeaceBody =>
+      'Choose your service and schedule, then follow your booking through to completion.';
+
+  @override
+  String get onboardingSkip => 'Skip';
+
+  @override
+  String get onboardingNext => 'Next';
+
+  @override
+  String get onboardingStart => 'Get started';
+
+  @override
+  String get onboardingSignIn => 'Already have an account? Sign in';
+
+  @override
+  String get brightHomePhotoAlt =>
+      'A bright, tidy apartment living room in Nairobi, Kenya.';
+
+  @override
+  String get professionalPhotoAlt =>
+      'A café workspace with pendant lights in Dar es Salaam, Tanzania.';
+
+  @override
+  String get peaceHomePhotoAlt =>
+      'Colourful patterned armchairs in a bright Dar es Salaam interior.';
+
+  @override
+  String get servicePhotoAlt =>
+      'An illustrative Tanzanian or East African interior.';
+
+  @override
+  String get lastCleaning => 'Your last cleaning';
 }

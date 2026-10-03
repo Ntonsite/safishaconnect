@@ -7,6 +7,8 @@ import '../../models/models.dart';
 import '../../state/app_state.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/editorial_photo.dart';
+import '../widgets/home_editorial.dart';
 import '../widgets/service_widgets.dart';
 import 'booking_detail_screen.dart';
 import 'booking_flow_screen.dart';
@@ -23,6 +25,20 @@ class _HomeShellState extends State<HomeShell> {
   final _homeKey = GlobalKey<_HomeTabState>();
   final _bookingsKey = GlobalKey<_BookingsTabState>();
   bool _openingBooking = false;
+  bool _loadingRepeat = false;
+
+  Future<void> _repeat(BookingSummary booking) async {
+    if (_loadingRepeat || _openingBooking) return;
+    _loadingRepeat = true;
+    try {
+      final detail = await context.read<Repository>().booking(booking.id);
+      if (mounted) await _book(repeat: detail);
+    } catch (e) {
+      if (mounted) showError(context, e);
+    } finally {
+      _loadingRepeat = false;
+    }
+  }
 
   Future<void> _book({Service? service, BookingDetail? repeat}) async {
     if (_openingBooking) return;
@@ -47,7 +63,7 @@ class _HomeShellState extends State<HomeShell> {
         );
       }
       if (mounted) {
-        _homeKey.currentState?.reload();
+        _homeKey.currentState?.reload(showActive: created != null);
         _bookingsKey.currentState?.reload();
       }
     } finally {
@@ -74,6 +90,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: IndexedStack(
           index: _tab,
@@ -83,6 +100,7 @@ class _HomeShellState extends State<HomeShell> {
               onBook: () => _book(),
               onService: (s) => _book(service: s),
               onDetail: _detail,
+              onRepeat: _repeat,
             ),
             _visited.contains(1)
                 ? _BookingsTab(
@@ -105,7 +123,7 @@ class _HomeShellState extends State<HomeShell> {
             _tab = i;
             _visited.add(i);
           });
-          if (i == 0) _homeKey.currentState?.reload();
+          if (i == 0) _homeKey.currentState?.reload(showActive: true);
           if (i == 1) _bookingsKey.currentState?.reload();
         },
         destinations: [
@@ -134,20 +152,24 @@ class _HomeTab extends StatefulWidget {
   final VoidCallback onBook;
   final ValueChanged<Service> onService;
   final ValueChanged<BookingSummary> onDetail;
+  final ValueChanged<BookingSummary> onRepeat;
   const _HomeTab({
     super.key,
     required this.onBook,
     required this.onService,
     required this.onDetail,
+    required this.onRepeat,
   });
   @override
   State<_HomeTab> createState() => _HomeTabState();
 }
 
 class _HomeTabState extends State<_HomeTab> {
+  final _scroll = ScrollController();
   List<Service>? _services;
   List<BookingSummary>? _bookings;
   Object? _error;
+  Object? _bookingsError;
   final _refresh = RefreshGate();
   @override
   void initState() {
@@ -155,26 +177,60 @@ class _HomeTabState extends State<_HomeTab> {
     reload();
   }
 
-  Future<void> reload() => _refresh.run(() async {
-    try {
+  Future<void> reload({bool showActive = false}) {
+    if (showActive && _scroll.hasClients) _scroll.jumpTo(0);
+    return _refresh.run(() async {
       final repo = context.read<Repository>();
-      final data = await Future.wait([repo.services(), repo.bookings('all')]);
-      if (mounted) {
-        setState(() {
-          _services = data[0] as List<Service>;
-          _bookings = data[1] as List<BookingSummary>;
-          _error = null;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _error = e);
-    }
-  });
+      await Future.wait([
+        () async {
+          try {
+            final services = await repo.services();
+            if (mounted) {
+              setState(() {
+                _services = services;
+                _error = null;
+              });
+            }
+          } catch (e) {
+            if (mounted) setState(() => _error = e);
+          }
+        }(),
+        () async {
+          try {
+            final bookings = await repo.bookings('all');
+            if (mounted) {
+              setState(() {
+                _bookings = bookings;
+                _bookingsError = null;
+              });
+            }
+          } catch (e) {
+            if (mounted) setState(() => _bookingsError = e);
+          }
+        }(),
+      ]);
+    });
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    precacheImage(EditorialImages.provider(EditorialImages.home), context);
+  }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final me = context.watch<AppState>().me;
+    final completed =
+        (_bookings ?? []).where((b) => b.status == 'CLOSED').toList()
+          ..sort((a, b) => b.date.compareTo(a.date));
     final active =
         (_bookings ?? [])
             .where(
@@ -188,6 +244,7 @@ class _HomeTabState extends State<_HomeTab> {
     return RefreshIndicator(
       onRefresh: reload,
       child: ListView(
+        controller: _scroll,
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
@@ -195,10 +252,11 @@ class _HomeTabState extends State<_HomeTab> {
             children: [
               Expanded(
                 child: Text(
-                  l.hello(me?.firstName ?? ''),
+                  'SafishaCon',
                   style: const TextStyle(
-                    color: Brand.ink3,
-                    fontWeight: FontWeight.w500,
+                    color: Brand.green900,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 19,
                   ),
                 ),
               ),
@@ -209,28 +267,43 @@ class _HomeTabState extends State<_HomeTab> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            l.chooseService,
-            style: Theme.of(context).textTheme.headlineMedium,
+          Row(
+            children: [
+              const Icon(
+                Icons.location_on_outlined,
+                size: 15,
+                color: Brand.ink3,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  l.serviceCity,
+                  style: const TextStyle(fontSize: 12, color: Brand.ink3),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(l.homeSubtitle, style: const TextStyle(color: Brand.ink3)),
           const SizedBox(height: 20),
-          FilledButton.icon(
-            key: const ValueKey('home-book'),
-            onPressed: widget.onBook,
-            icon: const Icon(Icons.add, size: 20),
-            label: Text(l.bookCleaning),
-          ),
-          const SizedBox(height: 20),
-          if (_error != null) ErrorRetry(error: _error!, onRetry: reload),
-          if (_services == null && _error == null)
-            LoadingState(l.loadingServices),
+          if (_bookingsError != null)
+            ErrorRetry(error: _bookingsError!, onRetry: reload),
+          if (_bookings == null && _bookingsError == null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                l.loadingBookings,
+                style: const TextStyle(color: Brand.ink3, fontSize: 12),
+              ),
+            ),
           if (active.isNotEmpty) ...[
+            Text(
+              l.hello(me?.firstName ?? ''),
+              style: const TextStyle(color: Brand.ink3),
+            ),
+            const SizedBox(height: 8),
             SectionHeader(l.activeBooking),
             const SizedBox(height: 12),
             SectionCard(
+              key: const ValueKey('home-active-booking'),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -249,11 +322,32 @@ class _HomeTabState extends State<_HomeTab> {
             ),
             const SizedBox(height: 28),
           ],
+          const HomeHero(key: ValueKey('home-hero')),
+          const SizedBox(height: 24),
+          BookingQuickStart(onBook: widget.onBook),
+          const SizedBox(height: 24),
+          if (active.isEmpty && completed.isNotEmpty) ...[
+            SectionHeader(l.lastCleaning),
+            BookingTile(
+              booking: completed.first,
+              onTap: () => widget.onDetail(completed.first),
+            ),
+            OutlinedButton(
+              onPressed: () => widget.onRepeat(completed.first),
+              child: Text(l.bookAgain),
+            ),
+            const SizedBox(height: 24),
+          ],
+          const TrustStrip(),
+          const SizedBox(height: 28),
+          if (_error != null) ErrorRetry(error: _error!, onRetry: reload),
+          if (_services == null && _error == null)
+            LoadingState(l.loadingServices),
           if (_services != null) ...[
             SectionHeader(l.popularServices),
             const SizedBox(height: 4),
             for (final service in _services!) ...[
-              ServiceRow(
+              ServicePreview(
                 service: service,
                 onTap: () async {
                   final choose = await showServiceSheet(context, service);
@@ -264,20 +358,6 @@ class _HomeTabState extends State<_HomeTab> {
             ],
           ],
           const SizedBox(height: 28),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(Brand.radius),
-            child: Image.asset(
-              'assets/images/cleaning-professional.webp',
-              height: 170,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              cacheWidth: 800,
-              alignment: const Alignment(0, -.15),
-              semanticLabel: l.cleaningPhotoAlt,
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
-            ),
-          ),
-          const SizedBox(height: 20),
           Text(l.howTitle, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(l.howBody, style: const TextStyle(color: Brand.ink2)),

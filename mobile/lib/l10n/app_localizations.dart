@@ -1285,6 +1285,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Selected'**
   String get selected;
+
+  /// No description provided for @homeHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean spaces.\nBrighter days.'**
+  String get homeHeadline;
+
+  /// No description provided for @homePromise.
+  ///
+  /// In en, this message translates to:
+  /// **'Your space, cared for. Your time, freed up.'**
+  String get homePromise;
+
+  /// No description provided for @homeEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'A LITTLE MORE TIME FOR YOU'**
+  String get homeEyebrow;
+
+  /// No description provided for @serviceCity.
+  ///
+  /// In en, this message translates to:
+  /// **'Dar es Salaam'**
+  String get serviceCity;
+
+  /// No description provided for @verifiedProfessionals.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified providers'**
+  String get verifiedProfessionals;
+
+  /// No description provided for @equipmentIncluded.
+  ///
+  /// In en, this message translates to:
+  /// **'Equipment included'**
+  String get equipmentIncluded;
+
+  /// No description provided for @transparentPricing.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear pricing'**
+  String get transparentPricing;
+
+  /// No description provided for @quickStartBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a service and a time. We take care of the assignment.'**
+  String get quickStartBody;
+
+  /// No description provided for @onboardingOutcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A cleaner home, without the hassle.'**
+  String get onboardingOutcomeTitle;
+
+  /// No description provided for @onboardingOutcomeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Book your cleaning in a few taps. Make room for the things you love.'**
+  String get onboardingOutcomeBody;
+
+  /// No description provided for @onboardingProfessionalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted professionals. Ready to clean.'**
+  String get onboardingProfessionalTitle;
+
+  /// No description provided for @onboardingProfessionalBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We assign an eligible, verified provider who brings the equipment and cleaning materials.'**
+  String get onboardingProfessionalBody;
+
+  /// No description provided for @onboardingPeaceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Book. Relax.\nWe’ll handle the rest.'**
+  String get onboardingPeaceTitle;
+
+  /// No description provided for @onboardingPeaceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your service and schedule, then follow your booking through to completion.'**
+  String get onboardingPeaceBody;
+
+  /// No description provided for @onboardingSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get onboardingSkip;
+
+  /// No description provided for @onboardingNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get onboardingNext;
+
+  /// No description provided for @onboardingStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get onboardingStart;
+
+  /// No description provided for @onboardingSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account? Sign in'**
+  String get onboardingSignIn;
+
+  /// No description provided for @brightHomePhotoAlt.
+  ///
+  /// In en, this message translates to:
+  /// **'A bright, tidy apartment living room in Nairobi, Kenya.'**
+  String get brightHomePhotoAlt;
+
+  /// No description provided for @professionalPhotoAlt.
+  ///
+  /// In en, this message translates to:
+  /// **'A café workspace with pendant lights in Dar es Salaam, Tanzania.'**
+  String get professionalPhotoAlt;
+
+  /// No description provided for @peaceHomePhotoAlt.
+  ///
+  /// In en, this message translates to:
+  /// **'Colourful patterned armchairs in a bright Dar es Salaam interior.'**
+  String get peaceHomePhotoAlt;
+
+  /// No description provided for @servicePhotoAlt.
+  ///
+  /// In en, this message translates to:
+  /// **'An illustrative Tanzanian or East African interior.'**
+  String get servicePhotoAlt;
+
+  /// No description provided for @lastCleaning.
+  ///
+  /// In en, this message translates to:
+  /// **'Your last cleaning'**
+  String get lastCleaning;
 }
 
 class _AppLocalizationsDelegate

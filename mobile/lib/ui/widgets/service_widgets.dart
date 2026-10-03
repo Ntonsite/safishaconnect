@@ -7,6 +7,7 @@ import '../../models/models.dart';
 import '../../state/app_state.dart';
 import '../theme.dart';
 import 'common.dart';
+import 'editorial_photo.dart';
 
 class ServiceRow extends StatelessWidget {
   final Service service;
@@ -82,6 +83,18 @@ Future<bool?> showServiceSheet(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (EditorialImages.services[service.slug]
+                case final String photo) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: EditorialPhoto(
+                  asset: photo,
+                  label: l.servicePhotoAlt,
+                  height: 190,
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
             Row(
               children: [
                 ServiceBadge(service.icon),

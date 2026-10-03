@@ -656,4 +656,83 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get selected => 'Imechaguliwa';
+
+  @override
+  String get homeHeadline => 'Mazingira safi.\nSiku zenye furaha.';
+
+  @override
+  String get homePromise =>
+      'Tunatunza mazingira yako. Unapata muda wa mambo yako.';
+
+  @override
+  String get homeEyebrow => 'MUDA ZAIDI KWA AJILI YAKO';
+
+  @override
+  String get serviceCity => 'Dar es Salaam';
+
+  @override
+  String get verifiedProfessionals => 'Watoa huduma waliothibitishwa';
+
+  @override
+  String get equipmentIncluded => 'Vifaa vimejumuishwa';
+
+  @override
+  String get transparentPricing => 'Bei zilizo wazi';
+
+  @override
+  String get quickStartBody =>
+      'Chagua huduma na muda. Tunakupangia mtoa huduma.';
+
+  @override
+  String get onboardingOutcomeTitle => 'Nyumba safi, bila usumbufu.';
+
+  @override
+  String get onboardingOutcomeBody =>
+      'Agiza huduma ya usafi kwa hatua chache. Pata muda wa mambo unayopenda.';
+
+  @override
+  String get onboardingProfessionalTitle =>
+      'Wataalamu unaowaamini. Tayari kufanya usafi.';
+
+  @override
+  String get onboardingProfessionalBody =>
+      'Tunakupangia mtoa huduma anayestahili na aliyethibitishwa, anayekuja na vifaa na bidhaa za usafi.';
+
+  @override
+  String get onboardingPeaceTitle => 'Agiza. Tulia.\nTuachie yaliyobaki.';
+
+  @override
+  String get onboardingPeaceBody =>
+      'Chagua huduma na ratiba, kisha fuatilia agizo lako hadi huduma ikamilike.';
+
+  @override
+  String get onboardingSkip => 'Ruka';
+
+  @override
+  String get onboardingNext => 'Endelea';
+
+  @override
+  String get onboardingStart => 'Anza sasa';
+
+  @override
+  String get onboardingSignIn => 'Una akaunti tayari? Ingia';
+
+  @override
+  String get brightHomePhotoAlt =>
+      'Sebule nadhifu yenye mwanga katika fleti ya Nairobi, Kenya.';
+
+  @override
+  String get professionalPhotoAlt =>
+      'Sehemu ya kufanyia kazi katika mkahawa wenye taa za kuning\'inia, Dar es Salaam, Tanzania.';
+
+  @override
+  String get peaceHomePhotoAlt =>
+      'Viti vyenye vitambaa vya rangi na nakshi katika chumba chenye mwanga, Dar es Salaam.';
+
+  @override
+  String get servicePhotoAlt =>
+      'Picha ya mfano wa mazingira ya ndani Tanzania au Afrika Mashariki.';
+
+  @override
+  String get lastCleaning => 'Huduma yako ya mwisho';
 }

@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../../state/app_state.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/editorial_photo.dart';
 
 final _tzPhone = RegExp(r'^(?:\+?255|0)?\s*[67]\d{2}[\s-]?\d{3}[\s-]?\d{3}$');
 final _passwordRule = RegExp(r'^(?=.*[A-Za-z])(?=.*\d).{8,128}$');
@@ -59,7 +60,16 @@ class _AuthScaffold extends StatelessWidget {
                 LanguageToggle(value: state.locale, onChanged: state.setLocale),
               ],
             ),
-            const SizedBox(height: 36),
+            const SizedBox(height: 24),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: EditorialPhoto(
+                asset: EditorialImages.brightHome,
+                label: AppLocalizations.of(context).brightHomePhotoAlt,
+                height: 140,
+              ),
+            ),
+            const SizedBox(height: 24),
             ...children,
           ],
         ),

@@ -598,6 +598,9 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
             final d = days[i];
             final selected = DateUtils.isSameDay(d, _date);
             return Semantics(
+              key: ValueKey(
+                'booking-date-${DateFormat('yyyy-MM-dd').format(d)}',
+              ),
               button: true,
               selected: selected,
               label: DateFormat.yMMMEd(lang).format(d),

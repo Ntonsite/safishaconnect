@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:safishacon_mobile/core/api_client.dart';
@@ -7,7 +9,9 @@ import 'package:safishacon_mobile/core/repository.dart';
 import 'package:safishacon_mobile/core/token_store.dart';
 import 'package:safishacon_mobile/l10n/app_localizations.dart';
 import 'package:safishacon_mobile/main.dart';
+import 'package:safishacon_mobile/models/models.dart';
 import 'package:safishacon_mobile/ui/screens/home_screens.dart';
+import 'package:safishacon_mobile/ui/screens/booking_flow_screen.dart';
 import 'package:safishacon_mobile/state/app_state.dart';
 
 void main() {
@@ -17,10 +21,12 @@ void main() {
   testWidgets(
     'real customer journey on Android ($locale)',
     (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(AppState.onboardingKey);
       final repo = Repository(
         ApiClient(baseUrl: AppConfig.apiBaseUrl, tokens: MemoryTokenStore()),
       );
-      final state = AppState(repo, initialLocale: const Locale(locale));
+      var state = AppState(repo, initialLocale: const Locale(locale));
       await state.bootstrap();
       final config = await repo.config();
       final accounts = config['demo_accounts'] as List;
@@ -55,15 +61,53 @@ void main() {
       }
 
       await binding.convertFlutterSurfaceToImage();
+      await shot('onboarding-1');
+      await tap(find.byKey(const ValueKey('onboarding-skip')));
+      expect(prefs.getBool(AppState.onboardingKey), isTrue);
+      state = AppState(repo, initialLocale: const Locale(locale));
+      await state.bootstrap();
+      await tester.pumpWidget(SafishaApp(repo: repo, state: state));
       await wait(find.byType(TextFormField));
-      await tester.enterText(
-        find.byType(TextFormField).at(0),
-        customer['email'],
-      );
-      await tester.enterText(
-        find.byType(TextFormField).at(1),
-        customer['password'],
-      );
+      await shot('skip-restart-auth');
+      // Simulate a new install's local flag for the complete three-page path.
+      await prefs.remove(AppState.onboardingKey);
+      state = AppState(repo, initialLocale: const Locale(locale));
+      await state.bootstrap();
+      await tester.pumpWidget(SafishaApp(repo: repo, state: state));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tap(find.byKey(const ValueKey('onboarding-next')));
+      await shot('onboarding-2');
+      await tap(find.byKey(const ValueKey('onboarding-next')));
+      await shot('onboarding-3');
+      await tap(find.byKey(const ValueKey('onboarding-next')));
+      expect(prefs.getBool(AppState.onboardingKey), isTrue);
+      await wait(find.byType(TextFormField));
+      final l = lookupAppLocalizations(const Locale(locale));
+      if (locale == 'en') {
+        // A real fresh customer shows the discovery home without existing bookings.
+        await tap(find.widgetWithText(TextButton, l.noAccount));
+        await tester.pumpAndSettle();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final phone =
+            '+2557${(timestamp % 100000000).toString().padLeft(8, '0')}';
+        final fields = find.byType(TextFormField);
+        await tester.enterText(fields.at(0), 'Option Four Test');
+        await tester.enterText(fields.at(1), phone);
+        await tester.enterText(
+          fields.at(2),
+          'mobile.option4.$timestamp@example.com',
+        );
+        await tester.enterText(fields.at(3), customer['password']);
+      } else {
+        await tester.enterText(
+          find.byType(TextFormField).at(0),
+          customer['email'],
+        );
+        await tester.enterText(
+          find.byType(TextFormField).at(1),
+          customer['password'],
+        );
+      }
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pump(const Duration(milliseconds: 700));
       await shot("login");
@@ -71,8 +115,21 @@ void main() {
       await wait(find.byKey(const ValueKey('home-book')));
       await state.setLocale(const Locale(locale), persistRemote: false);
       await tester.pump(const Duration(milliseconds: 400));
-      final l = lookupAppLocalizations(const Locale(locale));
       await shot('home');
+      // A persisted session must bypass the intro, even without its local flag.
+      await prefs.remove(AppState.onboardingKey);
+      state = AppState(repo, initialLocale: const Locale(locale));
+      await state.bootstrap();
+      expect(state.status, AuthStatus.signedIn);
+      await tester.pumpWidget(SafishaApp(repo: repo, state: state));
+      await wait(find.byType(HomeShell));
+      await shot('authenticated-restart-home');
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('home-book')),
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await shot('home-editorial');
       await tap(find.byKey(const ValueKey('home-book')));
       final services = await repo.services();
       final service = services.firstWhere((s) => s.slug == 'deep-cleaning');
@@ -117,32 +174,70 @@ void main() {
       };
       final quote = await repo.quote(request);
       expect(quote.total, 110000);
-      final now = DateTime.now().add(const Duration(days: 1));
-      final date =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      final slots = await repo.slots(
-        serviceId: service.id,
-        areaId: area.id,
-        date: date,
-        durationMinutes: quote.durationMinutes,
+      final today = DateTime.now();
+      DateTime? availableDay;
+      String? start;
+      for (var offset = 1; offset < 14; offset++) {
+        final day = DateTime(today.year, today.month, today.day + offset);
+        final slots = await repo.slots(
+          serviceId: service.id,
+          areaId: area.id,
+          date: DateFormat('yyyy-MM-dd').format(day),
+          durationMinutes: quote.durationMinutes,
+        );
+        final slot =
+            slots.where((s) => s.available && s.start == '10:00').firstOrNull ??
+            slots.where((s) => s.available).firstOrNull;
+        if (slot != null) {
+          availableDay = day;
+          start = slot.start;
+          break;
+        }
+      }
+      expect(
+        availableDay,
+        isNotNull,
+        reason: 'An eligible provider needs availability in the next 14 days',
       );
-      final slot =
-          slots.where((s) => s.available && s.start == '10:00').firstOrNull ??
-          slots.firstWhere((s) => s.available);
-      await tap(find.text(slot.start));
+      final dayFinder = find.byKey(
+        ValueKey(
+          'booking-date-${DateFormat('yyyy-MM-dd').format(availableDay!)}',
+        ),
+      );
+      await tester.scrollUntilVisible(
+        dayFinder,
+        180,
+        scrollable: find.byWidgetPredicate(
+          (w) => w is Scrollable && w.axisDirection == AxisDirection.right,
+        ),
+      );
+      await tap(dayFinder);
+      await tap(find.text(start!));
       await shot('schedule');
       await nextStep();
       await shot('review');
       await nextStep();
       await wait(find.byKey(const ValueKey('track-booking')));
       await shot('confirmed');
-      await tap(find.byKey(const ValueKey('track-booking')));
       final summaries = await repo.bookings('all');
-      final reference = tester
-          .widgetList<Text>(find.byType(Text))
-          .map((t) => t.data ?? '')
-          .firstWhere((s) => s.startsWith('SC-'));
+      final reference = RegExp(r'SC-[\w-]+')
+          .firstMatch(
+            tester
+                .widgetList<Text>(find.byType(Text))
+                .map((t) => t.data ?? '')
+                .firstWhere((s) => s.contains('SC-')),
+          )!
+          .group(0)!;
       final booking = summaries.firstWhere((b) => b.reference == reference);
+      await tap(find.widgetWithText(TextButton, l.backHome));
+      await wait(find.byKey(const ValueKey('home-active-booking')));
+      await shot('home-active');
+      await tap(find.byType(NavigationDestination).at(1));
+      await tap(
+        find.byWidgetPredicate(
+          (w) => w is BookingTile && w.booking.id == booking.id,
+        ),
+      );
       expect((await repo.booking(booking.id)).addressLine, address);
       // Provider actions use real API transitions; no statuses are injected into UI.
       ApiClient? provider;
@@ -226,6 +321,13 @@ void main() {
         'Demo mobile UI test, not a customer testimonial.',
       );
       await tap(find.widgetWithText(FilledButton, l.submitReview));
+      // The longer SW page can leave the new review section above the lazy viewport.
+      await tester.fling(
+        find.byType(Scrollable).first,
+        const Offset(0, 3000),
+        3000,
+      );
+      await tester.pumpAndSettle();
       await wait(find.text(l.yourReview));
       await shot('reviewed');
       expect((await repo.booking(booking.id)).status, 'CLOSED');
@@ -234,6 +336,14 @@ void main() {
       await tap(find.byType(BackButton));
       await tester.pump(const Duration(milliseconds: 600));
       await tap(find.byType(NavigationDestination).at(1));
+      // The demo customer's long list stays scrolled to the opened booking; the
+      // filter chips live in the lazy list's first row.
+      await tester.fling(
+        find.byType(Scrollable).first,
+        const Offset(0, 3000),
+        3000,
+      );
+      await tester.pumpAndSettle();
       await tap(find.text(l.pastBookings));
       final historyTile = find.byWidgetPredicate(
         (w) => w is BookingTile && w.booking.id == booking.id,
@@ -246,6 +356,42 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       await shot('history');
       expect(historyTile, findsOneWidget);
+      await tap(find.byType(NavigationDestination).first);
+      await wait(find.byType(HomeShell));
+      for (final homeLocale in ['en', 'sw']) {
+        await state.setLocale(Locale(homeLocale), persistRemote: false);
+        await tester.pumpAndSettle();
+        await tester.fling(
+          find.byType(Scrollable).first,
+          const Offset(0, 3000),
+          3000,
+        );
+        await tester.pumpAndSettle();
+        await shot('home-retest-$homeLocale');
+        expect(tester.takeException(), isNull);
+      }
+      await state.setLocale(const Locale(locale), persistRemote: false);
+      await tester.pumpAndSettle();
+      if (!(await repo.bookings('all')).any(
+        (b) => liveStatuses.contains(b.status) || b.status == 'DISPUTED',
+      )) {
+        final again = find.widgetWithText(OutlinedButton, l.bookAgain);
+        await tester.scrollUntilVisible(
+          again,
+          180,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tap(again);
+        await wait(find.byTooltip('${l.bedrooms} +'));
+        final repeat = tester
+            .widget<BookingFlowScreen>(find.byType(BookingFlowScreen))
+            .repeatBooking;
+        expect(repeat?.id, booking.id);
+        expect(repeat?.bedrooms, 3);
+        expect(repeat?.bathrooms, 2);
+        expect(repeat?.addressLine, address);
+        await shot('home-book-again');
+      }
       debugPrint('MOBILE_AUDIT_COMPLETED ${booking.reference} $locale');
       await tester.pumpWidget(const SizedBox.shrink());
       state.dispose();
